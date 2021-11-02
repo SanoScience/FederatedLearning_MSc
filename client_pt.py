@@ -8,12 +8,17 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
+import logging
 
+hdlr = logging.StreamHandler()
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 warnings.filterwarnings("ignore", category=UserWarning)
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
-    print("CUDA is available")
+    device_name = torch.cuda.get_device_name(0)
+    logger.info(f"CUDA is available: {device_name}")
 
 # #############################################################################
 # 1. PyTorch pipeline: model/train/test/dataloader
