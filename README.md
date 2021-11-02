@@ -1,2 +1,8 @@
 # FederatedLearning_MSc
-This repository is a part of Master's theses on Federated Learning 
+
+Steps:
+1. sbatch server.sh
+2. Get the node name
+3. sbatch client.sh <node name>
+4. Wait for the results :)
+
