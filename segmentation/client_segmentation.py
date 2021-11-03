@@ -8,8 +8,6 @@ from collections import OrderedDict
 import flwr as fl
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
@@ -35,26 +33,6 @@ if torch.cuda.is_available():
 # #############################################################################
 # 1. PyTorch pipeline: model/train/test/dataloader
 # #############################################################################
-
-# Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')
-class Net(nn.Module):
-    def __init__(self) -> None:
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
 
 def jaccard(outputs, targets):
@@ -138,8 +116,8 @@ def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
 
     scratch_path = os.environ['SCRATCH']
-    masks_path = scratch_path + "/dataset/masks"
-    images_path = scratch_path + "/dataset/images"
+    masks_path = f"{scratch_path}/dataset/masks"
+    images_path = f"{scratch_path}/dataset/images"
 
     dataset = LungSegDataset(client_id=client_id,
                              clients_number=clients_number,
