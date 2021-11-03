@@ -45,21 +45,23 @@ def get_ENS_weights(num_classes, samples_per_class, beta=1):
 
 parser = argparse.ArgumentParser(description="Train classifier to detect covid on CXR images.")
 
+DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
+
 parser.add_argument("--images",
                     type=str,
-                    default="../../CXR-BackDoor/datasets/images_nih/",
+                    default=os.path.join(DATASET_PATH_BASE, "images/"),
                     help="Path to the images")
 parser.add_argument("--labels",
                     type=str,
-                    default="../data/nih/nih_data_labels.csv",
+                    default=os.path.join(DATASET_PATH_BASE, "labels/nih_data_labels.csv"),
                     help="Path to the labels")
 parser.add_argument("--train_subset",
                     type=str,
-                    default="../data/nih/nih_train_val_list.txt",
+                    default=os.path.join(DATASET_PATH_BASE, "partitions/nih_train_val_list.txt"),
                     help="Path to the file with training dataset files list")
 parser.add_argument("--test_subset",
                     type=str,
-                    default="../data/nih/nih_test_list.txt",
+                    default=os.path.join(DATASET_PATH_BASE, "partitions/nih_test_list.txt"),
                     help="Path to the file with test/validation dataset files list")
 parser.add_argument("--in_channels",
                     type=int,
