@@ -1,5 +1,5 @@
 """Data loader for lung segmentation."""
-from data_selector import IIDSelector
+from segmentation.data_selector import IIDSelector
 
 import os
 import glob
