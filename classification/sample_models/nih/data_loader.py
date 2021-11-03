@@ -11,7 +11,7 @@ import cv2
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # for DEBUG only
-os.chdir(os.path.join(os.getcwd(), 'src'))
+# os.chdir(os.path.join(os.getcwd(), 'src'))
 
 
 class NIHDataset(Dataset):
@@ -73,11 +73,12 @@ class NIHDataset(Dataset):
 
 
 def main():
-    nihdataset = NIHDataset("../data/nih/nih_train_val_list.txt", "../data/nih/nih_data_labels.csv",
-                            "../../CXR-BackDoor/datasets/images_nih/")
+    nihdataset = NIHDataset("$SCRATCH/fl_msc/classification/NIH/data/partitions/nih_train_val_list.txt",
+                            "$SCRATCH/fl_msc/classification/NIH/data/labels/nih_data_labels.csv",
+                            "$SCRATCH/fl_msc/classification/NIH/data/images/")
     for idx, (image, label) in enumerate(nihdataset):
-        #    if idx > 10:
-        #        break
+        if idx > 10:
+            break
         print(image, label)
 
 
