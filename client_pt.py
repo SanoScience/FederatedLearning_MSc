@@ -11,6 +11,7 @@ from torchvision.datasets import CIFAR10
 import logging
 
 hdlr = logging.StreamHandler()
+logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
 
