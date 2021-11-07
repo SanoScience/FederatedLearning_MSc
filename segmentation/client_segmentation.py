@@ -16,13 +16,13 @@ from segmentation.loss_functions import DiceLoss
 from segmentation.models.unet import UNet
 
 IMAGE_SIZE = 512
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
-
+torch.cuda.empty_cache()
 warnings.filterwarnings("ignore", category=UserWarning)
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
@@ -184,8 +184,25 @@ def main():
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
         def set_parameters(self, parameters):
-            params_dict = zip(net.state_dict().keys(), parameters)
+            logger.info("len(parameters): " + str(len(parameters)))
+            #for a in parameters:
+            #    logger.info("Shape: " + str(a.shape))
+            #logger.info("PARAMS ____")
+            logger.info(net.state_dict().keys())
+            params_dict = []
+            for i, k in enumerate(list(net.state_dict().keys())):
+                params_dict.append((k, parameters[i])) 
+            #params_dict = zip(net.state_dict().keys(), parameters)
+            logger.info("LEN: params_dict " + str(len(list(params_dict))))
+            print(params_dict[0])
+            
+            logger.info(net.state_dict().keys())
             state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+            logger.info(state_dict.keys())
+            
+            logger.info(set(state_dict.keys()) == set(net.state_dict().keys()))
+             
+#print(str(state_dict) + " " + str(type(state_dict)))
             net.load_state_dict(state_dict, strict=True)
 
         def fit(self, parameters, config):

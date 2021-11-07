@@ -14,7 +14,7 @@ if __name__ == "__main__":
         fraction_fit=0.5,
         fraction_eval=0.5,
 	min_fit_clients=2,
-	min_available_clients=3
+	min_available_clients=2
     )
     server_addr = socket.gethostname()
     # Start server

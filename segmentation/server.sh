@@ -5,6 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu
 #SBATCH -A plgsano2
+
 #SBATCH --gres=gpu:1
 
 source venv/bin/activate
