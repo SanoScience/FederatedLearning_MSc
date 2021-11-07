@@ -12,6 +12,6 @@ class DataSelector(ABC):
 
 class IIDSelector(DataSelector):
     def select_data(self, images, masks, client_id, number_of_clients):
-        sampled_images = [path for i, path in enumerate(images) if i % client_id == 0]
-        sampled_masks = [path for i, path in enumerate(masks) if i % client_id == 0]
+        sampled_images = [path for i, path in enumerate(images) if (i % number_of_clients) == client_id]
+        sampled_masks = [path for i, path in enumerate(masks) if (i % number_of_clients) == client_id]
         return sampled_images, sampled_masks
