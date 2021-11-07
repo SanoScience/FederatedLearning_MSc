@@ -116,8 +116,8 @@ def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
 
     scratch_path = os.environ['SCRATCH']
-    masks_path = f"{scratch_path}/dataset/masks"
-    images_path = f"{scratch_path}/dataset/images"
+    masks_path = f"/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/masks"
+    images_path = f"/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images"
 
     dataset = LungSegDataset(client_id=client_id,
                              clients_number=clients_number,
@@ -141,9 +141,10 @@ def load_data(client_id, clients_number):
     ids = np.array([i for i in range(len(dataset))])
     np.random.shuffle(ids)
     train_ids, val_ids = train_test_split(ids)
-
+    logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
     train_sampler = SubsetRandomSampler(train_ids)
     val_sampler = SubsetRandomSampler(val_ids)
+    
 
     train_loader = DataLoader(train_dataset,
                               batch_size=BATCH_SIZE,
@@ -167,8 +168,8 @@ def main():
         raise TypeError("Client takes 3 arguments: server address, client id and clients number")
 
     server_addr = arguments[1]
-    client_id = arguments[2]
-    clients_number = arguments[3]
+    client_id = int(arguments[2])
+    clients_number = int(arguments[3])
     # Load model
     net = UNet(input_channels=1,
                output_channels=64,
@@ -199,7 +200,7 @@ def main():
             return float(loss), len(val_loader), {"accuracy": float(accuracy)}
 
     # Start client
-    logger.info("Connecting to:", f"{server_addr}:8081")
+    logger.info( f"Connecting to: {server_addr}:8081")
     fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
 
 

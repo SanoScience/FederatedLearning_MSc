@@ -7,8 +7,9 @@
 #SBATCH --gres=gpu:1
 #SBATCH -A plgsano2
 
-
+export PYTHONPATH=/net/scratch/people/plgprzjab/FederatedLearning_MSc
 source venv/bin/activate
-# $1 contains server's node name; $2 holds a client's id.
-echo $1 $2
-python3 client_segmentation.py $1 $2
+# $1 -> server's node name; $2 -> client's id; $3 -> clients number
+echo $1 $2 $3
+python3 client_segmentation.py $1 $2 $3
+
