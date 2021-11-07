@@ -204,7 +204,7 @@ def main():
             logger.info(set(state_dict.keys()) == set(net.state_dict().keys()))
              
             for k,v in params_dict:
-                if len(v) == 0:
+                if v.size() == 0:
                     print(k)
             net.load_state_dict(state_dict, strict=True)
 
