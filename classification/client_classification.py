@@ -117,7 +117,7 @@ parser.add_argument("--node_name",
 parser.add_argument("--client_id",
                     type=int,
                     default=0,
-                    help="ID of the client")     
+                    help="ID of the client")
 
 parser.add_argument("--clients_number",
                     type=int,
@@ -261,8 +261,11 @@ def get_valid_transform_albu():
 def load_data(client_id, clients_number):
     train_transform_albu = get_train_transformation_albu()
     valid_transform_albu = get_valid_transform_albu()
-    train_dataset = NIHDataset(args.train_subset, args.labels, args.images, train_transform_albu, limit=args.limit)
-    val_dataset = NIHDataset(args.test_subset, args.labels, args.images, valid_transform_albu, limit=args.limit)
+
+    train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
+                               transform=train_transform_albu, limit=args.limit)
+    val_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
+                             transform=valid_transform_albu, limit=args.limit)
 
     classes_names = train_dataset.classes_names
 
