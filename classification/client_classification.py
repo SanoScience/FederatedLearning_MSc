@@ -2,21 +2,21 @@ import logging
 import os
 import sys
 import time
-import warnings
 from collections import OrderedDict
 
 import flwr as fl
 import numpy as np
 import torch
-from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, SubsetRandomSampler
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import torchvision.transforms as transforms
 from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import classification_report
+import albu
+from albumentations.pytorch import ToTensorV2
+import argparse
+from fl_nih_dataset import NIHDataset
+from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -113,51 +113,8 @@ args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.device_id
 
-train_transform_albu = albu.Compose([
-    albu.RandomResizedCrop(height=args.size, width=args.size, scale=(0.5, 1.0),
-                           ratio=(0.8, 1.2), interpolation=1, p=1.0),
-    albu.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=30, interpolation=1,
-                          border_mode=0, value=0, p=0.25),
-    albu.HorizontalFlip(p=0.5),
-    albu.OneOf([
-        albu.MotionBlur(p=.2),
-        albu.MedianBlur(blur_limit=3, p=0.1),
-        albu.Blur(blur_limit=3, p=0.1),
-    ], p=0.25),
-    albu.OneOf([
-        albu.OpticalDistortion(p=0.3),
-        albu.GridDistortion(p=0.3),
-        albu.IAAPiecewiseAffine(p=0.1),
-        albu.ElasticTransform(alpha=1, sigma=50, alpha_affine=40,
-                              interpolation=1, border_mode=4,  # value=None, mask_value=None,
-                              always_apply=False, approximate=False, p=0.3)
-    ], p=0.3),
-    albu.OneOf([
-        albu.CLAHE(clip_limit=2),
-        albu.IAASharpen(),
-        albu.IAAEmboss(),
-        albu.RandomBrightnessContrast(),
-    ], p=0.25),
-    albu.CoarseDropout(fill_value=0, p=0.25, max_height=32, max_width=32, max_holes=8),
-    albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-    ToTensorV2(),
-])
-valid_transform_albu = albu.Compose([
-    albu.Resize(args.size, args.size),
-    albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-    ToTensorV2(),
-])
 
-train_dataset = NIHDataset(args.train_subset, args.labels, args.images, train_transform_albu, limit=args.limit)
-val_dataset = NIHDataset(args.test_subset, args.labels, args.images, valid_transform_albu, limit=args.limit)
-
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                                           num_workers=args.num_workers)
-validation_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size,
-                                                num_workers=args.num_workers)
-
-
-def train(model, train_loader, criterion, optimizer, epochs=1):
+def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
     for epoch in range(epochs):
         start_time_epoch = time.time()
         print(f"Starting epoch {epoch + 1}")
@@ -195,7 +152,7 @@ def train(model, train_loader, criterion, optimizer, epochs=1):
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
         print("Training report:")
-        print(classification_report(labels, preds, target_names=train_dataset.classes_names))
+        print(classification_report(labels, preds, target_names=classes_names))
 
         train_loss = running_loss / len(train_loader)
         train_acc = running_accuracy / len(train_loader)
@@ -204,7 +161,7 @@ def train(model, train_loader, criterion, optimizer, epochs=1):
               f" Training Acc: {train_acc:.4f}")
 
 
-def validate(model, validation_loader, criterion, optimizer, scheduler):
+def validate(model, validation_loader, criterion, optimizer, scheduler, classes_names):
     val_running_loss = 0.0
     val_running_accuracy = 0.0
     val_preds = []
@@ -242,8 +199,63 @@ def validate(model, validation_loader, criterion, optimizer, scheduler):
     val_preds = torch.cat(val_preds, dim=0).tolist()
     val_labels = torch.cat(val_labels, dim=0).tolist()
     print("Validation report:")
-    print(classification_report(val_preds, val_labels, target_names=train_dataset.classes_names))
+    print(classification_report(val_preds, val_labels, target_names=classes_names))
     return val_acc, val_loss
+
+
+def get_train_transformation_albu():
+    return albu.Compose([
+        albu.RandomResizedCrop(height=args.size, width=args.size, scale=(0.5, 1.0),
+                               ratio=(0.8, 1.2), interpolation=1, p=1.0),
+        albu.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=30, interpolation=1,
+                              border_mode=0, value=0, p=0.25),
+        albu.HorizontalFlip(p=0.5),
+        albu.OneOf([
+            albu.MotionBlur(p=.2),
+            albu.MedianBlur(blur_limit=3, p=0.1),
+            albu.Blur(blur_limit=3, p=0.1),
+        ], p=0.25),
+        albu.OneOf([
+            albu.OpticalDistortion(p=0.3),
+            albu.GridDistortion(p=0.3),
+            albu.IAAPiecewiseAffine(p=0.1),
+            albu.ElasticTransform(alpha=1, sigma=50, alpha_affine=40,
+                                  interpolation=1, border_mode=4,  # value=None, mask_value=None,
+                                  always_apply=False, approximate=False, p=0.3)
+        ], p=0.3),
+        albu.OneOf([
+            albu.CLAHE(clip_limit=2),
+            albu.IAASharpen(),
+            albu.IAAEmboss(),
+            albu.RandomBrightnessContrast(),
+        ], p=0.25),
+        albu.CoarseDropout(fill_value=0, p=0.25, max_height=32, max_width=32, max_holes=8),
+        albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
+        ToTensorV2(),
+    ])
+
+
+def get_valid_transform_albu():
+    return albu.Compose([
+        albu.Resize(args.size, args.size),
+        albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
+        ToTensorV2(),
+    ])
+
+
+def load_data(client_id, clients_number):
+    train_transform_albu = get_train_transformation_albu()
+    valid_transform_albu = get_valid_transform_albu()
+    train_dataset = NIHDataset(args.train_subset, args.labels, args.images, train_transform_albu, limit=args.limit)
+    val_dataset = NIHDataset(args.test_subset, args.labels, args.images, valid_transform_albu, limit=args.limit)
+
+    classes_names = train_dataset.classes_names
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
+                                               num_workers=args.num_workers)
+    validation_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size,
+                                                    num_workers=args.num_workers)
+    return train_loader, validation_loader, classes_names
 
 
 # #############################################################################
@@ -264,7 +276,10 @@ def main():
     model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
     model.cuda()
 
-    ens = get_ENS_weights(args.classes, list(sum(train_dataset.one_hot_labels)), beta=args.beta)
+    # Load data
+    train_loader, validation_loader, classes_names = load_data(client_id, clients_number)
+
+    ens = get_ENS_weights(args.classes, list(sum(classes_names)), beta=args.beta)
     ens /= ens.max()
     print(f"beta: {args.beta}, weights: {ens.tolist()}")
     ens = ens.to(device=device, dtype=torch.float32)
@@ -272,9 +287,6 @@ def main():
     criterion = nn.BCEWithLogitsLoss(weight=ens)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
-
-    # Load data
-    train_loader, val_loader = load_data(client_id, clients_number)
 
     # Flower client
     class ClassificationClient(fl.client.NumPyClient):
@@ -288,14 +300,14 @@ def main():
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
-            train(model, train_loader, criterion, optimizer, epochs=args.epochs)
+            train(model, train_loader, criterion, optimizer, classes_names, epochs=args.epochs)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy = validate(model, validation_loader, criterion, optimizer, scheduler)
+            loss, accuracy = validate(model, validation_loader, criterion, optimizer, scheduler, classes_names)
             logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            return float(loss), len(val_loader), {"accuracy": float(accuracy)}
+            return float(loss), len(validation_loader), {"accuracy": float(accuracy)}
 
     # Start client
     logger.info("Connecting to:", f"{server_addr}:8081")

@@ -4,19 +4,15 @@ import torch
 import os
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageFile
-import torchvision.transforms.functional as F
 import numpy as np
 import cv2
+from data_selector import IIDSelector
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-# for DEBUG only
-# os.chdir(os.path.join(os.getcwd(), 'src'))
-
-
 class NIHDataset(Dataset):
-    def __init__(self, client_id, clients, dataset_split_file, labels, images_source, transform=None, limit=-1):
+    def __init__(self, client_id, clients_number, dataset_split_file, labels, images_source, transform=None, limit=-1):
 
         self.transform = transform
         self.classes_names = ["Atelectasis", "Cardiomegaly", "Effusion", "Infiltration", "Mass", "Nodule", "Pneumonia",
@@ -42,7 +38,9 @@ class NIHDataset(Dataset):
             self.images = self.images[0:limit]
             self.one_hot_labels = self.one_hot_labels[0:limit]
 
-        # self.labels = [0 if i == True else 1 for i in list(subset_labels['Finding Labels'] == "No Finding")][0:images_count]
+        selector = IIDSelector()
+        self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
+                                                                clients_number)
 
     def __len__(self):
         return len(self.one_hot_labels)
@@ -71,18 +69,3 @@ class NIHDataset(Dataset):
                 if item in elem:
                     labels_vector[idx] = 1.0
             self.one_hot_labels.append(labels_vector)
-
-
-def main():
-    nihdataset = NIHDataset(
-        os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/partitions/nih_train_val_list.txt"),
-        os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/labels/nih_data_labels.csv"),
-        os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/images/"))
-    for idx, (image, label) in enumerate(nihdataset):
-        if idx > 10:
-            break
-        print(image, label)
-
-
-if __name__ == "__main__":
-    main()
