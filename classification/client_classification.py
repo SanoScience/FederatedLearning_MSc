@@ -267,13 +267,13 @@ def load_data(client_id, clients_number):
     val_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
                              transform=valid_transform_albu, limit=args.limit)
 
-    classes_names = train_dataset.classes_names
+    one_hot_labels = train_dataset.one_hot_labels
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                num_workers=args.num_workers)
     validation_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size,
                                                     num_workers=args.num_workers)
-    return train_loader, validation_loader, classes_names
+    return train_loader, validation_loader, one_hot_labels
 
 
 # #############################################################################
@@ -292,9 +292,9 @@ def main():
     model.cuda()
 
     # Load data
-    train_loader, validation_loader, classes_names = load_data(client_id, clients_number)
+    train_loader, validation_loader, one_hot_labels = load_data(client_id, clients_number)
 
-    ens = get_ENS_weights(args.classes, list(sum(classes_names)), beta=args.beta)
+    ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
     ens /= ens.max()
     print(f"beta: {args.beta}, weights: {ens.tolist()}")
     ens = ens.to(device=device, dtype=torch.float32)
