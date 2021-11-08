@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import classification_report
-import albu
+import albumentations as albu
 from albumentations.pytorch import ToTensorV2
 import argparse
 from fl_nih_dataset import NIHDataset
@@ -106,8 +106,23 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=-1,
+                    default=160,
                     help="use to limit amount of data")
+
+parser.add_argument("--node_name",
+                    type=str,
+                    default="p001",
+                    help="server node name")
+
+parser.add_argument("--client_id",
+                    type=int,
+                    default=0,
+                    help="ID of the client")     
+
+parser.add_argument("--clients_number",
+                    type=int,
+                    default=1,
+                    help="number of the clients")
 
 args = parser.parse_args()
 
@@ -264,13 +279,10 @@ def load_data(client_id, clients_number):
 
 def main():
     """Create model, load data, define Flower client, start Flower client."""
-    arguments = sys.argv
-    if len(arguments) < 4:
-        raise TypeError("Client takes 3 arguments: server address, client id and clients number")
 
-    server_addr = arguments[1]
-    client_id = arguments[2]
-    clients_number = arguments[3]
+    server_addr = args.node_name
+    client_id = args.client_id
+    clients_number = args.clients_number
     # Load model
     # EFFNET
     model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
