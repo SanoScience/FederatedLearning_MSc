@@ -6,12 +6,25 @@ class DataSelector(ABC):
         pass
 
     @abstractmethod
-    def select_data(self, images, masks, client_id, number_of_clients):
+    def select_client_data(self, images, masks, client_id, number_of_clients):
+        pass
+
+    @abstractmethod
+    def select_server_data(self, images, masks):
         pass
 
 
 class IIDSelector(DataSelector):
-    def select_data(self, images, masks, client_id, number_of_clients):
-        sampled_images = [path for i, path in enumerate(images) if (i % number_of_clients) == client_id]
-        sampled_masks = [path for i, path in enumerate(masks) if (i % number_of_clients) == client_id]
+    def select_client_data(self, images, masks, client_id, number_of_clients):
+        n = len(images)
+        test_fraction = 0.9 * n
+        client_images = images[:test_fraction]
+        client_masks = masks[:test_fraction]
+        sampled_images = [path for i, path in enumerate(client_images) if (i % number_of_clients) == client_id]
+        sampled_masks = [path for i, path in enumerate(client_masks) if (i % number_of_clients) == client_id]
         return sampled_images, sampled_masks
+
+    def select_server_data(self, images, masks):
+        n = len(images)
+        test_fraction = 0.9 * n
+        return images[test_fraction:], masks[test_fraction:]

@@ -21,8 +21,8 @@ class LungSegDataset(Dataset):
     """class LungSegDataset."""
 
     def __init__(self,
-                 client_id: int,
-                 clients_number: int,
+                 client_id: int = None,
+                 clients_number: int = None,
                  path_to_images: str = None,
                  path_to_masks: str = None,
                  image_size: int = None,
@@ -40,7 +40,10 @@ class LungSegDataset(Dataset):
         selector = IIDSelector()
         imgs = sorted(glob.glob(self.path_to_images + "/*.jpeg"), key=get_key)
         masks = sorted(glob.glob(self.path_to_masks + "/*.png"), key=get_key)
-        self.images, self.masks = selector.select_data(imgs, masks, client_id, clients_number)
+        if mode == 'test':
+            self.images, self.masks = selector.select_server_data(imgs, masks)
+        else:
+            self.images, self.masks = selector.select_client_data(imgs, masks, client_id, clients_number)
 
     def __getitem__(self, x) -> (torch.Tensor, torch.Tensor):
         """

@@ -6,6 +6,7 @@ import warnings
 from collections import OrderedDict
 
 import flwr as fl
+import grpc
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
@@ -115,7 +116,7 @@ def validate(net, val_loader):
 def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
 
-    scratch_path = os.environ['SCRATCH']
+    # scratch_path = os.environ['SCRATCH']
     masks_path = f"/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/masks"
     images_path = f"/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images"
 
@@ -184,27 +185,18 @@ def main():
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
         def set_parameters(self, parameters):
-            # logger.info("len(parameters): " + str(len(parameters)))
-            #for a in parameters:
-            #    logger.info("Shape: " + str(a.shape))
-            #logger.info("PARAMS ____")
-            # logger.info(net.state_dict().keys())
             params_dict = []
             for i, k in enumerate(list(net.state_dict().keys())):
-                params_dict.append((k, parameters[i])) 
-            #params_dict = zip(net.state_dict().keys(), parameters)
-            # logger.info("LEN: params_dict " + str(len(list(params_dict))))
-            # print(params_dict[0])
+                p = parameters[i]
+                if 'num_batches_tracked' in k:
+                    p = p.reshape(p.size)
+                params_dict.append((k, p))
 
-            
             state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
             logger.info(net.state_dict().keys())
             logger.info(state_dict.keys())
-            
             logger.info(set(state_dict.keys()) == set(net.state_dict().keys()))
-             
-            for k,v in params_dict:
-                print(v.size)
+
             net.load_state_dict(state_dict, strict=True)
 
         def fit(self, parameters, config):
@@ -214,13 +206,13 @@ def main():
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy = validate(net, val_loader)
-            logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            return float(loss), len(val_loader), {"accuracy": float(accuracy)}
+            loss, jaccard_score = validate(net, val_loader)
+            logger.info(f"Loss: {loss}, jaccard score: {jaccard_score}")
+            return float(loss), len(val_loader), {"accuracy": float(jaccard_score)}
 
     # Start client
-    logger.info( f"Connecting to: {server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
+    logger.info(f"Connecting to: {server_addr}:8081")
+    fl.client.start_numpy_client("[::]:8081", client=SegmentationClient())
 
 
 if __name__ == "__main__":
