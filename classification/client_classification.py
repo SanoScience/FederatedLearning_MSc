@@ -25,6 +25,9 @@ logger.setLevel(logging.INFO)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+logger.info("Device:", device)
+logger.info("CUDA_VISIBLE_DEVICES =", os.environ['CUDA_VISIBLE_DEVICES'])
+
 
 def accuracy_score(pred, actual):
     act_labels = actual == 1
@@ -106,7 +109,7 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=1000,
+                    default=300,
                     help="use to limit amount of data")
 
 parser.add_argument("--node_name",
@@ -126,13 +129,14 @@ parser.add_argument("--clients_number",
 
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = args.device_id
+
+# os.environ['CUDA_VISIBLE_DEVICES'] = args.device_id
 
 
 def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
     for epoch in range(epochs):
         start_time_epoch = time.time()
-        print(f"Starting epoch {epoch + 1}")
+        logger.info(f"Starting epoch {epoch + 1}")
         model.train()
         running_loss = 0.0
         running_accuracy = 0.0
@@ -158,22 +162,22 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
             running_accuracy += acc
 
             if batch_idx % 10 == 0:
-                print(" ", end="")
-                print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                      f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
-                      f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
-                      f" Time: {time.time() - start_time_epoch:2f}")
+                logger.info(" ", end="")
+                logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                            f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
+                            f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
+                            f" Time: {time.time() - start_time_epoch:2f}")
 
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
-        print("Training report:")
-        print(classification_report(labels, preds, target_names=classes_names))
+        logger.info("Training report:")
+        logger.info(classification_report(labels, preds, target_names=classes_names))
 
         train_loss = running_loss / len(train_loader)
         train_acc = running_accuracy / len(train_loader)
 
-        print(f" Training Loss: {train_loss:.4f}"
-              f" Training Acc: {train_acc:.4f}")
+        logger.info(f" Training Loss: {train_loss:.4f}"
+                    f" Training Acc: {train_acc:.4f}")
 
 
 def validate(model, validation_loader, criterion, optimizer, scheduler, classes_names):
@@ -182,7 +186,7 @@ def validate(model, validation_loader, criterion, optimizer, scheduler, classes_
     val_preds = []
     val_labels = []
     model.eval()
-    print("Validation: ")
+    logger.info("Validation: ")
     with torch.no_grad():
         for batch_idx, (image, label) in enumerate(validation_loader):
             image = image.to(device=device, dtype=torch.float32)
@@ -206,15 +210,15 @@ def validate(model, validation_loader, criterion, optimizer, scheduler, classes_
     scheduler.step(val_loss)
 
     for param_group in optimizer.param_groups:
-        print(f"Current lr: {param_group['lr']}")
+        logger.info(f"Current lr: {param_group['lr']}")
 
-    print(f" Validation Loss: {val_loss:.4f}"
-          f" Validation Acc: {val_acc:.4f}")
+    logger.info(f" Validation Loss: {val_loss:.4f}"
+                f" Validation Acc: {val_acc:.4f}")
 
     val_preds = torch.cat(val_preds, dim=0).tolist()
     val_labels = torch.cat(val_labels, dim=0).tolist()
-    print("Validation report:")
-    print(classification_report(val_preds, val_labels, target_names=classes_names))
+    logger.info("Validation report:")
+    logger.info(classification_report(val_preds, val_labels, target_names=classes_names))
     return val_acc, val_loss
 
 
@@ -297,7 +301,7 @@ def main():
 
     ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
     ens /= ens.max()
-    print(f"beta: {args.beta}, weights: {ens.tolist()}")
+    logger.info(f"beta: {args.beta}, weights: {ens.tolist()}")
     ens = ens.to(device=device, dtype=torch.float32)
 
     criterion = nn.BCEWithLogitsLoss(weight=ens)
@@ -310,6 +314,7 @@ def main():
             return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
         def set_parameters(self, parameters):
+            logger.info("Loading parameters...")
             params_dict = []
             for i, k in enumerate(list(model.state_dict().keys())):
                 p = parameters[i]
@@ -319,6 +324,7 @@ def main():
 
             state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
             model.load_state_dict(state_dict, strict=True)
+            logger.info("Parameters loaded")
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
