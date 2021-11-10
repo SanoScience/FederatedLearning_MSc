@@ -109,7 +109,7 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=2000,
+                    default=10000,
                     help="use to limit amount of data")
 
 parser.add_argument("--node_name",
@@ -162,8 +162,11 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
             running_accuracy += acc
 
             if batch_idx % 10 == 0:
+                logger.info("Output:")
                 logger.info(output.data)
+                logger.info("Predicted:")
                 logger.info(pred)
+                logger.info("Label:")
                 logger.info(label)
                 logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
@@ -172,8 +175,6 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
 
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
-        logger.info(preds)
-        logger.info(labels)
         logger.info("Training report:")
         logger.info(classification_report(labels, preds, target_names=classes_names))
 
@@ -207,6 +208,15 @@ def validate(model, validation_loader, criterion, optimizer, scheduler, classes_
 
             val_running_loss += loss.item()
             val_running_accuracy += acc
+
+            if batch_idx % 10 == 0:
+                logger.info(f"Batch: {batch_idx + 1}/{len(validation_loader)}")
+                logger.info("Output:")
+                logger.info(output.data)
+                logger.info("Predicted:")
+                logger.info(pred)
+                logger.info("Label:")
+                logger.info(label)
 
     val_loss = val_running_loss / len(validation_loader)
     val_acc = val_running_accuracy / len(validation_loader)

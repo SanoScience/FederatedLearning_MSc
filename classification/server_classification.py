@@ -20,6 +20,6 @@ if __name__ == "__main__":
     logger.info(f"Starting server on {server_addr}")
     fl.server.start_server(
         server_address=f"{server_addr}:8081",
-        config={"num_rounds": 3},
+        config={"num_rounds": 10},
         strategy=strategy,
     )
