@@ -70,7 +70,7 @@ parser.add_argument("--in_channels",
                     help="Number of input channels")
 parser.add_argument("--epochs",
                     type=int,
-                    default=20,
+                    default=3,
                     help="Number of epochs")
 parser.add_argument("--size",
                     type=int,
@@ -109,7 +109,7 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=300,
+                    default=1000,
                     help="use to limit amount of data")
 
 parser.add_argument("--node_name",
