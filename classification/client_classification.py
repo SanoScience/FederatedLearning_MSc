@@ -106,7 +106,7 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=160,
+                    default=1000,
                     help="use to limit amount of data")
 
 parser.add_argument("--node_name",
@@ -268,12 +268,13 @@ def load_data(client_id, clients_number):
                              transform=valid_transform_albu, limit=args.limit)
 
     one_hot_labels = train_dataset.one_hot_labels
+    classes_names = train_dataset.classes_names
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                num_workers=args.num_workers)
     validation_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size,
                                                     num_workers=args.num_workers)
-    return train_loader, validation_loader, one_hot_labels
+    return train_loader, validation_loader, one_hot_labels, classes_names
 
 
 # #############################################################################
@@ -292,7 +293,7 @@ def main():
     model.cuda()
 
     # Load data
-    train_loader, validation_loader, one_hot_labels = load_data(client_id, clients_number)
+    train_loader, validation_loader, one_hot_labels, classes_names = load_data(client_id, clients_number)
 
     ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
     ens /= ens.max()
@@ -309,9 +310,15 @@ def main():
             return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
         def set_parameters(self, parameters):
-            params_dict = zip(model.state_dict().keys(), parameters)
+            params_dict = []
+            for i, k in enumerate(list(model.state_dict().keys())):
+                p = parameters[i]
+                if 'num_batches_tracked' in k:
+                    p = p.reshape(p.size)
+                params_dict.append((k, p))
+
             state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
-            model.load_state_dict(state_dict, strict=False)
+            model.load_state_dict(state_dict, strict=True)
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
