@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 logger.info("Device:", device)
-logger.info("CUDA_VISIBLE_DEVICES =", os.environ['CUDA_VISIBLE_DEVICES'])
+logger.info("CUDA_VISIBLE_DEVICES =" + str(os.environ['CUDA_VISIBLE_DEVICES']))
 
 
 def accuracy_score(pred, actual):
@@ -70,7 +70,7 @@ parser.add_argument("--in_channels",
                     help="Number of input channels")
 parser.add_argument("--epochs",
                     type=int,
-                    default=3,
+                    default=2,
                     help="Number of epochs")
 parser.add_argument("--size",
                     type=int,
@@ -109,7 +109,7 @@ parser.add_argument("--titan",
                     help="machine to run")
 parser.add_argument("--limit",
                     type=int,
-                    default=1000,
+                    default=2000,
                     help="use to limit amount of data")
 
 parser.add_argument("--node_name",
@@ -162,6 +162,9 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
             running_accuracy += acc
 
             if batch_idx % 10 == 0:
+                logger.info(output.data)
+                logger.info(pred)
+                logger.info(label)
                 logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
@@ -169,6 +172,8 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
 
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
+        logger.info(preds)
+        logger.info(labels)
         logger.info("Training report:")
         logger.info(classification_report(labels, preds, target_names=classes_names))
 
@@ -337,7 +342,7 @@ def main():
             return float(loss), len(validation_loader), {"accuracy": float(accuracy)}
 
     # Start client
-    logger.info("Connecting to:", f"{server_addr}:8081")
+    logger.info("Connecting to:" + f"{server_addr}:8081")
     fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationClient())
 
 
