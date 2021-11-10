@@ -162,7 +162,6 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
             running_accuracy += acc
 
             if batch_idx % 10 == 0:
-                logger.info(" ", end="")
                 logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
