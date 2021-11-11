@@ -45,7 +45,7 @@ def get_eval_fn(net):
         loss.append(val_loss)
         jacc.append(jacc)
         if MAX_ROUND == ROUND:
-            df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND)], 'loss': loss, 'jaccard': jacc})
+            df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
             df.to_csv(f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc}
