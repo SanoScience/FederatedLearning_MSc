@@ -2,10 +2,9 @@ import logging
 import socket
 
 import flwr as fl
-import torch
 from torch.utils.data import DataLoader
 
-from common import *
+from segmentation.common import *
 from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet

@@ -9,7 +9,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
-from common import get_state_dict, jaccard, validate, get_data_paths
+from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
 from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss
 from segmentation.models.unet import UNet
