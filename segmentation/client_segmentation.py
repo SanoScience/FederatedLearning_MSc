@@ -1,9 +1,7 @@
 import logging
-import os
 import sys
 import time
 import warnings
-from collections import OrderedDict
 
 import flwr as fl
 import numpy as np
@@ -11,37 +9,24 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
+from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
 from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss
 from segmentation.models.unet import UNet
 
 IMAGE_SIZE = 512
-BATCH_SIZE = 16
+BATCH_SIZE = 2
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
-
+torch.cuda.empty_cache()
 warnings.filterwarnings("ignore", category=UserWarning)
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
     device_name = torch.cuda.get_device_name(0)
     logger.info(f"CUDA is available: {device_name}")
-
-
-# #############################################################################
-# 1. PyTorch pipeline: model/train/test/dataloader
-# #############################################################################
-
-
-def jaccard(outputs, targets):
-    outputs = outputs.view(outputs.size(0), -1)
-    targets = targets.view(targets.size(0), -1)
-    intersection = (outputs * targets).sum(1)
-    union = (outputs + targets).sum(1) - intersection
-    jac = (intersection + 0.001) / (union + 0.001)
-    return jac.mean()
 
 
 def train(net, train_loader, epochs):
@@ -84,40 +69,9 @@ def train(net, train_loader, epochs):
                           time.time() - start_time_epoch))
 
 
-def validate(net, val_loader):
-    criterion = DiceLoss()
-
-    """Validate the network on the entire validation set."""
-    net.eval()
-    val_running_loss = 0.0
-    val_running_jac = 0.0
-    for batch_idx, (images, masks) in enumerate(val_loader):
-        images = images.to(DEVICE)
-        masks = masks.to(DEVICE)
-
-        outputs_masks = net(images)
-        loss_seg = criterion(outputs_masks, masks)
-        loss = loss_seg
-
-        val_running_loss += loss.item()
-        jac = jaccard(outputs_masks.round(), masks)
-        val_running_jac += jac.item()
-
-        mask = masks[0, 0, :]
-        out = outputs_masks[0, 0, :]
-        res = torch.cat((mask, out), 1).cpu().detach()
-
-    val_loss = val_running_loss / len(val_loader)
-    val_jac = val_running_jac / len(val_loader)
-    return val_loss, val_jac
-
-
 def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
-
-    scratch_path = os.environ['SCRATCH']
-    masks_path = f"{scratch_path}/dataset/masks"
-    images_path = f"{scratch_path}/dataset/images"
+    masks_path, images_path = get_data_paths()
 
     dataset = LungSegDataset(client_id=client_id,
                              clients_number=clients_number,
@@ -138,10 +92,11 @@ def load_data(client_id, clients_number):
                                         path_to_masks=masks_path,
                                         image_size=IMAGE_SIZE,
                                         mode="valid")
+
     ids = np.array([i for i in range(len(dataset))])
     np.random.shuffle(ids)
     train_ids, val_ids = train_test_split(ids)
-
+    logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
     train_sampler = SubsetRandomSampler(train_ids)
     val_sampler = SubsetRandomSampler(val_ids)
 
@@ -156,19 +111,15 @@ def load_data(client_id, clients_number):
     return train_loader, val_loader
 
 
-# #############################################################################
-# 2. Federation of the pipeline with Flower
-# #############################################################################
-
 def main():
-    """Create model, load data, define Flower client, start Flower client."""
     arguments = sys.argv
     if len(arguments) < 4:
         raise TypeError("Client takes 3 arguments: server address, client id and clients number")
 
     server_addr = arguments[1]
-    client_id = arguments[2]
-    clients_number = arguments[3]
+    client_id = int(arguments[2])
+    clients_number = int(arguments[3])
+
     # Load model
     net = UNet(input_channels=1,
                output_channels=64,
@@ -183,8 +134,7 @@ def main():
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
         def set_parameters(self, parameters):
-            params_dict = zip(net.state_dict().keys(), parameters)
-            state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+            state_dict = get_state_dict(net, parameters)
             net.load_state_dict(state_dict, strict=True)
 
         def fit(self, parameters, config):
@@ -194,12 +144,12 @@ def main():
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy = validate(net, val_loader)
-            logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            return float(loss), len(val_loader), {"accuracy": float(accuracy)}
+            loss, jaccard_score = validate(net, val_loader, DEVICE)
+            logger.info(f"Loss: {loss}, jaccard score: {jaccard_score}")
+            return float(loss), len(val_loader), {"jaccard_score": float(jaccard_score)}
 
     # Start client
-    logger.info("Connecting to:", f"{server_addr}:8081")
+    logger.info(f"Connecting to: {server_addr}:8081")
     fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
 
 

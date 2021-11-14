@@ -1,12 +1,18 @@
 #!/bin/bash
 
 #SBATCH --output=%j.txt
-#SBATCH --time=2:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu
 #SBATCH -A plgsano2
+
 #SBATCH --gres=gpu:1
 
 source venv/bin/activate
+CURR_DIR=$PWD
+PARENT_DIR="$(dirname "$CURR_DIR")"
+echo $PARENT_DIR
+export PYTHONPATH=$PARENT_DIR
+
 echo $SLURM_JOB_NODELIST
 python3 server_segmentation.py
