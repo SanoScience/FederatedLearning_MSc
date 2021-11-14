@@ -48,7 +48,7 @@ def get_eval_fn(model, args, logger):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
 
     def evaluate(weights):
-        global ROUND, MAX_ROUNDS
+        global ROUND
         state_dict = get_state_dict(model, weights)
         model.load_state_dict(state_dict, strict=True)
         test_acc, test_loss, report = test(model, DEVICE, logger, test_loader, criterion, optimizer, scheduler,
@@ -59,7 +59,7 @@ def get_eval_fn(model, args, logger):
         reports.append(report)
 
         df = pd.DataFrame.from_dict(
-            {'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
+            {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
         df.to_csv(f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
         ROUND += 1
