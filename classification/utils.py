@@ -1,9 +1,14 @@
+import os
 import torch
 from collections import OrderedDict
 from sklearn.metrics import classification_report
 import albumentations as albu
 from albumentations.pytorch import ToTensorV2
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+import numpy as np
+import argparse
+
+DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
 
 
 def accuracy_score(pred, actual):
@@ -12,6 +17,13 @@ def accuracy_score(pred, actual):
     correct = same.sum().item()
     total = actual.shape[0] * actual.shape[1]
     return correct / total
+
+
+def get_ENS_weights(num_classes, samples_per_class, beta=1):
+    ens = 1.0 - np.power([beta] * num_classes, np.array(samples_per_class, dtype=np.float))
+    weights = (1.0 - beta) / np.array(ens)
+    weights = weights / np.sum(weights) * num_classes
+    return torch.as_tensor(weights, dtype=torch.float)
 
 
 def get_state_dict(model, parameters):
@@ -56,7 +68,7 @@ def get_train_transformation_albu(height, width):
     ])
 
 
-def get_train_transform_albu(height, width):
+def get_test_transform_albu(height, width):
     return albu.Compose([
         albu.Resize(height, width),
         albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
@@ -105,3 +117,89 @@ def test(model, device, logger, test_loader, criterion, optimizer, scheduler, cl
     report = classification_report(test_preds, test_labels, target_names=classes_names)
     logger.info(report)
     return test_acc, test_loss, report
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train classifier to detect covid on CXR images.")
+
+    parser.add_argument("--images",
+                        type=str,
+                        default=os.path.join(DATASET_PATH_BASE, "images/"),
+                        help="Path to the images")
+    parser.add_argument("--labels",
+                        type=str,
+                        default=os.path.join(DATASET_PATH_BASE, "labels/nih_data_labels.csv"),
+                        help="Path to the labels")
+    parser.add_argument("--train_subset",
+                        type=str,
+                        default=os.path.join(DATASET_PATH_BASE, "partitions/nih_train_val_list.txt"),
+                        help="Path to the file with training/validation dataset files list")
+    parser.add_argument("--test_subset",
+                        type=str,
+                        default=os.path.join(DATASET_PATH_BASE, "partitions/nih_test_list.txt"),
+                        help="Path to the file with test dataset files list")
+    parser.add_argument("--in_channels",
+                        type=int,
+                        default=3,
+                        help="Number of input channels")
+    parser.add_argument("--epochs",
+                        type=int,
+                        default=2,
+                        help="Number of epochs")
+    parser.add_argument("--size",
+                        type=int,
+                        default=256,
+                        help="input image size")
+    parser.add_argument("--num_workers",
+                        type=int,
+                        default=0,
+                        help="Number of workers for processing the data")
+    parser.add_argument("--classes",
+                        type=int,
+                        default=15,
+                        help="Number of classes in the dataset")
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=8,
+                        help="Number of batch size")
+    parser.add_argument("--lr",
+                        type=float,
+                        default=1e-3,
+                        help="Number of learning rate")
+    parser.add_argument("--beta",
+                        type=float,
+                        default=0.999,
+                        help="Param for weights - effective number")
+    parser.add_argument("--weight_decay",
+                        type=float,
+                        default=0.0001,
+                        help="Number of weight decay")
+    parser.add_argument("--device_id",
+                        type=str,
+                        default="0",
+                        help="GPU ID")
+    parser.add_argument("--titan",
+                        action='store_true',
+                        help="machine to run")
+    parser.add_argument("--limit",
+                        type=int,
+                        default=10000,
+                        help="use to limit amount of data")
+
+    parser.add_argument("--node_name",
+                        type=str,
+                        default="p001",
+                        help="server node name")
+
+    parser.add_argument("--client_id",
+                        type=int,
+                        default=0,
+                        help="ID of the client")
+
+    parser.add_argument("--clients_number",
+                        type=int,
+                        default=1,
+                        help="number of the clients")
+
+    args = parser.parse_args()
+    return args

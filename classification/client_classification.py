@@ -3,18 +3,16 @@ import os
 import time
 
 import flwr as fl
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import classification_report
 
-import argparse
 from fl_nih_dataset import NIHDataset
 
-from classification.utils import get_state_dict, get_train_transformation_albu, get_train_transform_albu, \
-    accuracy_score, test
+from classification.utils import get_state_dict, get_train_transformation_albu, accuracy_score, test, \
+    get_test_transform_albu, get_ENS_weights, parse_args
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -26,98 +24,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 logger.info("Device:", device)
 logger.info("CUDA_VISIBLE_DEVICES =" + str(os.environ['CUDA_VISIBLE_DEVICES']))
 
-
-def get_ENS_weights(num_classes, samples_per_class, beta=1):
-    ens = 1.0 - np.power([beta] * num_classes, np.array(samples_per_class, dtype=np.float))
-    weights = (1.0 - beta) / np.array(ens)
-    weights = weights / np.sum(weights) * num_classes
-    return torch.as_tensor(weights, dtype=torch.float)
-
-
-parser = argparse.ArgumentParser(description="Train classifier to detect covid on CXR images.")
-
-DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
-
-parser.add_argument("--images",
-                    type=str,
-                    default=os.path.join(DATASET_PATH_BASE, "images/"),
-                    help="Path to the images")
-parser.add_argument("--labels",
-                    type=str,
-                    default=os.path.join(DATASET_PATH_BASE, "labels/nih_data_labels.csv"),
-                    help="Path to the labels")
-parser.add_argument("--train_subset",
-                    type=str,
-                    default=os.path.join(DATASET_PATH_BASE, "partitions/nih_train_val_list.txt"),
-                    help="Path to the file with training/validation dataset files list")
-parser.add_argument("--test_subset",
-                    type=str,
-                    default=os.path.join(DATASET_PATH_BASE, "partitions/nih_test_list.txt"),
-                    help="Path to the file with test dataset files list")
-parser.add_argument("--in_channels",
-                    type=int,
-                    default=3,
-                    help="Number of input channels")
-parser.add_argument("--epochs",
-                    type=int,
-                    default=2,
-                    help="Number of epochs")
-parser.add_argument("--size",
-                    type=int,
-                    default=256,
-                    help="input image size")
-parser.add_argument("--num_workers",
-                    type=int,
-                    default=0,
-                    help="Number of workers for processing the data")
-parser.add_argument("--classes",
-                    type=int,
-                    default=15,
-                    help="Number of classes in the dataset")
-parser.add_argument("--batch_size",
-                    type=int,
-                    default=8,
-                    help="Number of batch size")
-parser.add_argument("--lr",
-                    type=float,
-                    default=1e-3,
-                    help="Number of learning rate")
-parser.add_argument("--beta",
-                    type=float,
-                    default=0.999,
-                    help="Param for weights - effective number")
-parser.add_argument("--weight_decay",
-                    type=float,
-                    default=0.0001,
-                    help="Number of weight decay")
-parser.add_argument("--device_id",
-                    type=str,
-                    default="0",
-                    help="GPU ID")
-parser.add_argument("--titan",
-                    action='store_true',
-                    help="machine to run")
-parser.add_argument("--limit",
-                    type=int,
-                    default=10000,
-                    help="use to limit amount of data")
-
-parser.add_argument("--node_name",
-                    type=str,
-                    default="p001",
-                    help="server node name")
-
-parser.add_argument("--client_id",
-                    type=int,
-                    default=0,
-                    help="ID of the client")
-
-parser.add_argument("--clients_number",
-                    type=int,
-                    default=1,
-                    help="number of the clients")
-
-args = parser.parse_args()
+args = parse_args()
 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = args.device_id
@@ -177,7 +84,7 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
 
 def load_data(client_id, clients_number):
     train_transform_albu = get_train_transformation_albu(args.size, args.size)
-    test_transform_albu = get_train_transform_albu(args.size, args.size)
+    test_transform_albu = get_test_transform_albu(args.size, args.size)
 
     train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
                                transform=train_transform_albu, limit=args.limit)
@@ -239,8 +146,10 @@ def main():
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy, _ = test(model, test_loader, device, logger, criterion, optimizer, scheduler, classes_names)
+            loss, accuracy, report = test(model, test_loader, device, logger, criterion, optimizer, scheduler,
+                                          classes_names)
             logger.info(f"Loss: {loss}, accuracy: {accuracy}")
+            logger.info(report)
             return float(loss), len(test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
 
     # Start client
