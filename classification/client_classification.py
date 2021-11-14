@@ -1,24 +1,19 @@
 import logging
 import os
-import sys
 import time
-from collections import OrderedDict
 
 import flwr as fl
 import numpy as np
-import torch
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import classification_report
-import albumentations as albu
-from albumentations.pytorch import ToTensorV2
+
 import argparse
 from fl_nih_dataset import NIHDataset
-from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
-from classification.utils import get_state_dict
+from classification.utils import get_state_dict, get_train_transformation_albu, get_train_transform_albu
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -61,11 +56,11 @@ parser.add_argument("--labels",
 parser.add_argument("--train_subset",
                     type=str,
                     default=os.path.join(DATASET_PATH_BASE, "partitions/nih_train_val_list.txt"),
-                    help="Path to the file with training dataset files list")
+                    help="Path to the file with training/validation dataset files list")
 parser.add_argument("--test_subset",
                     type=str,
                     default=os.path.join(DATASET_PATH_BASE, "partitions/nih_test_list.txt"),
-                    help="Path to the file with test/validation dataset files list")
+                    help="Path to the file with test dataset files list")
 parser.add_argument("--in_channels",
                     type=int,
                     default=3,
@@ -187,15 +182,15 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
                     f" Training Acc: {train_acc:.4f}")
 
 
-def validate(model, validation_loader, criterion, optimizer, scheduler, classes_names):
-    val_running_loss = 0.0
-    val_running_accuracy = 0.0
-    val_preds = []
-    val_labels = []
+def test(model, test_loader, criterion, optimizer, scheduler, classes_names):
+    test_running_loss = 0.0
+    test_running_accuracy = 0.0
+    test_preds = []
+    test_labels = []
     model.eval()
-    logger.info("Validation: ")
+    logger.info("Testing: ")
     with torch.no_grad():
-        for batch_idx, (image, label) in enumerate(validation_loader):
+        for batch_idx, (image, label) in enumerate(test_loader):
             image = image.to(device=device, dtype=torch.float32)
             label = label.to(device=device, dtype=torch.float32)
 
@@ -205,14 +200,14 @@ def validate(model, validation_loader, criterion, optimizer, scheduler, classes_
             pred = (output.data > 0.5).type(torch.float32)
             acc = accuracy_score(pred, label)
 
-            val_preds.append(pred)
-            val_labels.append(label)
+            test_preds.append(pred)
+            test_labels.append(label)
 
-            val_running_loss += loss.item()
-            val_running_accuracy += acc
+            test_running_loss += loss.item()
+            test_running_accuracy += acc
 
             if batch_idx % 10 == 0:
-                logger.info(f"Batch: {batch_idx + 1}/{len(validation_loader)}")
+                logger.info(f"Batch: {batch_idx + 1}/{len(test_loader)}")
                 logger.info("Output:")
                 logger.info(output.data)
                 logger.info("Predicted:")
@@ -220,81 +215,41 @@ def validate(model, validation_loader, criterion, optimizer, scheduler, classes_
                 logger.info("Label:")
                 logger.info(label)
 
-    val_loss = val_running_loss / len(validation_loader)
-    val_acc = val_running_accuracy / len(validation_loader)
+    test_loss = test_running_loss / len(test_loader)
+    test_acc = test_running_accuracy / len(test_loader)
 
-    scheduler.step(val_loss)
+    scheduler.step(test_loss)
 
     for param_group in optimizer.param_groups:
         logger.info(f"Current lr: {param_group['lr']}")
 
-    logger.info(f" Validation Loss: {val_loss:.4f}"
-                f" Validation Acc: {val_acc:.4f}")
+    logger.info(f" Test Loss: {test_loss:.4f}"
+                f" Test Acc: {test_acc:.4f}")
 
-    val_preds = torch.cat(val_preds, dim=0).tolist()
-    val_labels = torch.cat(val_labels, dim=0).tolist()
-    logger.info("Validation report:")
-    logger.info(classification_report(val_preds, val_labels, target_names=classes_names))
-    return val_acc, val_loss
-
-
-def get_train_transformation_albu():
-    return albu.Compose([
-        albu.RandomResizedCrop(height=args.size, width=args.size, scale=(0.5, 1.0),
-                               ratio=(0.8, 1.2), interpolation=1, p=1.0),
-        albu.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=30, interpolation=1,
-                              border_mode=0, value=0, p=0.25),
-        albu.HorizontalFlip(p=0.5),
-        albu.OneOf([
-            albu.MotionBlur(p=.2),
-            albu.MedianBlur(blur_limit=3, p=0.1),
-            albu.Blur(blur_limit=3, p=0.1),
-        ], p=0.25),
-        albu.OneOf([
-            albu.OpticalDistortion(p=0.3),
-            albu.GridDistortion(p=0.3),
-            albu.IAAPiecewiseAffine(p=0.1),
-            albu.ElasticTransform(alpha=1, sigma=50, alpha_affine=40,
-                                  interpolation=1, border_mode=4,  # value=None, mask_value=None,
-                                  always_apply=False, approximate=False, p=0.3)
-        ], p=0.3),
-        albu.OneOf([
-            albu.CLAHE(clip_limit=2),
-            albu.IAASharpen(),
-            albu.IAAEmboss(),
-            albu.RandomBrightnessContrast(),
-        ], p=0.25),
-        albu.CoarseDropout(fill_value=0, p=0.25, max_height=32, max_width=32, max_holes=8),
-        albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-        ToTensorV2(),
-    ])
-
-
-def get_valid_transform_albu():
-    return albu.Compose([
-        albu.Resize(args.size, args.size),
-        albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-        ToTensorV2(),
-    ])
+    test_preds = torch.cat(test_preds, dim=0).tolist()
+    test_labels = torch.cat(test_labels, dim=0).tolist()
+    logger.info("Test report:")
+    logger.info(classification_report(test_preds, test_labels, target_names=classes_names))
+    return test_acc, test_loss
 
 
 def load_data(client_id, clients_number):
-    train_transform_albu = get_train_transformation_albu()
-    valid_transform_albu = get_valid_transform_albu()
+    train_transform_albu = get_train_transformation_albu(args.size, args.size)
+    test_transform_albu = get_train_transform_albu(args.size, args.size)
 
     train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
                                transform=train_transform_albu, limit=args.limit)
-    val_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
-                             transform=valid_transform_albu, limit=args.limit)
+    test_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
+                             transform=test_transform_albu, limit=args.limit)
 
     one_hot_labels = train_dataset.one_hot_labels
     classes_names = train_dataset.classes_names
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                num_workers=args.num_workers)
-    validation_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size,
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                                     num_workers=args.num_workers)
-    return train_loader, validation_loader, one_hot_labels, classes_names
+    return train_loader, test_loader, one_hot_labels, classes_names
 
 
 # #############################################################################
@@ -313,7 +268,7 @@ def main():
     model.cuda()
 
     # Load data
-    train_loader, validation_loader, one_hot_labels, classes_names = load_data(client_id, clients_number)
+    train_loader, test_loader, one_hot_labels, classes_names = load_data(client_id, clients_number)
 
     ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
     ens /= ens.max()
@@ -342,9 +297,9 @@ def main():
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy = validate(model, validation_loader, criterion, optimizer, scheduler, classes_names)
+            loss, accuracy = test(model, test_loader, criterion, optimizer, scheduler, classes_names)
             logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            return float(loss), len(validation_loader), {"accuracy": float(accuracy)}
+            return float(loss), len(test_loader), {"accuracy": float(accuracy)}
 
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
