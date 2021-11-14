@@ -39,8 +39,9 @@ class NIHDataset(Dataset):
             self.one_hot_labels = self.one_hot_labels[0:limit]
 
         selector = IIDSelector()
-        self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
-                                                                clients_number)
+        if client_id != -1:
+            self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
+                                                                    clients_number)
 
     def __len__(self):
         return len(self.one_hot_labels)

@@ -13,7 +13,8 @@ from sklearn.metrics import classification_report
 import argparse
 from fl_nih_dataset import NIHDataset
 
-from classification.utils import get_state_dict, get_train_transformation_albu, get_train_transform_albu
+from classification.utils import get_state_dict, get_train_transformation_albu, get_train_transform_albu, \
+    accuracy_score, test
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -24,14 +25,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 logger.info("Device:", device)
 logger.info("CUDA_VISIBLE_DEVICES =" + str(os.environ['CUDA_VISIBLE_DEVICES']))
-
-
-def accuracy_score(pred, actual):
-    act_labels = actual == 1
-    same = act_labels == pred
-    correct = same.sum().item()
-    total = actual.shape[0] * actual.shape[1]
-    return correct / total
 
 
 def get_ENS_weights(num_classes, samples_per_class, beta=1):
@@ -182,57 +175,6 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
                     f" Training Acc: {train_acc:.4f}")
 
 
-def test(model, test_loader, criterion, optimizer, scheduler, classes_names):
-    test_running_loss = 0.0
-    test_running_accuracy = 0.0
-    test_preds = []
-    test_labels = []
-    model.eval()
-    logger.info("Testing: ")
-    with torch.no_grad():
-        for batch_idx, (image, label) in enumerate(test_loader):
-            image = image.to(device=device, dtype=torch.float32)
-            label = label.to(device=device, dtype=torch.float32)
-
-            output = model(image)
-            output = torch.sigmoid(output)
-            loss = criterion(output, label)
-            pred = (output.data > 0.5).type(torch.float32)
-            acc = accuracy_score(pred, label)
-
-            test_preds.append(pred)
-            test_labels.append(label)
-
-            test_running_loss += loss.item()
-            test_running_accuracy += acc
-
-            if batch_idx % 10 == 0:
-                logger.info(f"Batch: {batch_idx + 1}/{len(test_loader)}")
-                logger.info("Output:")
-                logger.info(output.data)
-                logger.info("Predicted:")
-                logger.info(pred)
-                logger.info("Label:")
-                logger.info(label)
-
-    test_loss = test_running_loss / len(test_loader)
-    test_acc = test_running_accuracy / len(test_loader)
-
-    scheduler.step(test_loss)
-
-    for param_group in optimizer.param_groups:
-        logger.info(f"Current lr: {param_group['lr']}")
-
-    logger.info(f" Test Loss: {test_loss:.4f}"
-                f" Test Acc: {test_acc:.4f}")
-
-    test_preds = torch.cat(test_preds, dim=0).tolist()
-    test_labels = torch.cat(test_labels, dim=0).tolist()
-    logger.info("Test report:")
-    logger.info(classification_report(test_preds, test_labels, target_names=classes_names))
-    return test_acc, test_loss
-
-
 def load_data(client_id, clients_number):
     train_transform_albu = get_train_transformation_albu(args.size, args.size)
     test_transform_albu = get_train_transform_albu(args.size, args.size)
@@ -240,7 +182,7 @@ def load_data(client_id, clients_number):
     train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
                                transform=train_transform_albu, limit=args.limit)
     test_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
-                             transform=test_transform_albu, limit=args.limit)
+                              transform=test_transform_albu, limit=args.limit)
 
     one_hot_labels = train_dataset.one_hot_labels
     classes_names = train_dataset.classes_names
@@ -248,7 +190,7 @@ def load_data(client_id, clients_number):
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
                                                num_workers=args.num_workers)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
-                                                    num_workers=args.num_workers)
+                                              num_workers=args.num_workers)
     return train_loader, test_loader, one_hot_labels, classes_names
 
 
@@ -297,9 +239,9 @@ def main():
 
         def evaluate(self, parameters, config):
             self.set_parameters(parameters)
-            loss, accuracy = test(model, test_loader, criterion, optimizer, scheduler, classes_names)
+            loss, accuracy, _ = test(model, test_loader, device, logger, criterion, optimizer, scheduler, classes_names)
             logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            return float(loss), len(test_loader), {"accuracy": float(accuracy)}
+            return float(loss), len(test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
 
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
