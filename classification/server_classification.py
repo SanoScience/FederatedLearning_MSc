@@ -7,9 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 
-from classification.fl_mnist_dataset import MNISTDataset
-from classification.fl_nih_dataset import NIHDataset
-from classification.utils import get_state_dict, get_test_transform_albu, get_ENS_weights, test, parse_args
+from fl_mnist_dataset import MNISTDataset
+from fl_nih_dataset import NIHDataset
+from utils import get_state_dict, get_test_transform_albu, get_ENS_weights, test, parse_args
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
