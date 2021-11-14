@@ -18,6 +18,8 @@ import argparse
 from fl_nih_dataset import NIHDataset
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
+from classification.utils import get_state_dict
+
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
@@ -329,14 +331,7 @@ def main():
 
         def set_parameters(self, parameters):
             logger.info("Loading parameters...")
-            params_dict = []
-            for i, k in enumerate(list(model.state_dict().keys())):
-                p = parameters[i]
-                if 'num_batches_tracked' in k:
-                    p = p.reshape(p.size)
-                params_dict.append((k, p))
-
-            state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+            state_dict = get_state_dict(model, parameters)
             model.load_state_dict(state_dict, strict=True)
             logger.info("Parameters loaded")
 
