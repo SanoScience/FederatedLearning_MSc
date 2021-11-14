@@ -201,5 +201,10 @@ def parse_args():
                         default=1,
                         help="number of the clients")
 
+    parser.add_argument("--dataset",
+                        type=str,
+                        default="chest",
+                        help="kind of dataset: chest/mnist")
+
     args = parser.parse_args()
     return args

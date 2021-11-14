@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 
+from classification.fl_mnist_dataset import MNISTDataset
 from classification.fl_nih_dataset import NIHDataset
 from classification.utils import get_state_dict, get_test_transform_albu, get_ENS_weights, test, parse_args
 
@@ -26,8 +27,11 @@ reports = []
 
 def get_eval_fn(model, args, logger):
     test_transform_albu = get_test_transform_albu(args.size, args.size)
-    test_dataset = NIHDataset(-1, args.clients_number, args.test_subset, args.labels, args.images,
-                              transform=test_transform_albu, limit=args.limit)
+    if args.dataset == "chest":
+        test_dataset = NIHDataset(-1, args.clients_number, args.test_subset, args.labels, args.images,
+                                  transform=test_transform_albu, limit=args.limit)
+    else:
+        test_dataset = MNISTDataset(-1, args.clients_number, args.test_subset, args.images)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                               num_workers=args.num_workers)
 
@@ -54,7 +58,8 @@ def get_eval_fn(model, args, logger):
         acc.append(test_acc)
         reports.append(report)
 
-        df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
+        df = pd.DataFrame.from_dict(
+            {'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
         df.to_csv(f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
         ROUND += 1

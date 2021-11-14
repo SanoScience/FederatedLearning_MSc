@@ -11,6 +11,7 @@ from sklearn.metrics import classification_report
 
 from fl_nih_dataset import NIHDataset
 
+from classification.fl_mnist_dataset import MNISTDataset
 from classification.utils import get_state_dict, get_train_transformation_albu, accuracy_score, test, \
     get_test_transform_albu, get_ENS_weights, parse_args
 
@@ -86,10 +87,14 @@ def load_data(client_id, clients_number):
     train_transform_albu = get_train_transformation_albu(args.size, args.size)
     test_transform_albu = get_test_transform_albu(args.size, args.size)
 
-    train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
-                               transform=train_transform_albu, limit=args.limit)
-    test_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
-                              transform=test_transform_albu, limit=args.limit)
+    if args.dataset == "chest":
+        train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,
+                                   transform=train_transform_albu, limit=args.limit)
+        test_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
+                                  transform=test_transform_albu, limit=args.limit)
+    else:
+        train_dataset = MNISTDataset(client_id, clients_number, args.train_subset, args.images, limit=args.limit)
+        test_dataset = MNISTDataset(client_id, clients_number, args.test_subset, args.images, limit=args.limit)
 
     one_hot_labels = train_dataset.one_hot_labels
     classes_names = train_dataset.classes_names
