@@ -206,5 +206,10 @@ def parse_args():
                         default="chest",
                         help="kind of dataset: chest/mnist")
 
+    parser.add_argument("--num_rounds",
+                        type=int,
+                        default=5,
+                        help="number of rounds")
+
     args = parser.parse_args()
     return args
