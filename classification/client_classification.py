@@ -60,12 +60,6 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
             running_accuracy += acc
 
             if batch_idx % 10 == 0:
-                logger.info("Output:")
-                logger.info(output.data)
-                logger.info("Predicted:")
-                logger.info(pred)
-                logger.info("Label:")
-                logger.info(label)
                 logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
@@ -93,8 +87,10 @@ def load_data(client_id, clients_number):
         test_dataset = NIHDataset(client_id, clients_number, args.test_subset, args.labels, args.images,
                                   transform=test_transform_albu, limit=args.limit)
     else:
-        train_dataset = MNISTDataset(client_id, clients_number, args.train_subset, args.images, limit=args.limit)
-        test_dataset = MNISTDataset(client_id, clients_number, args.test_subset, args.images, limit=args.limit)
+        train_dataset = MNISTDataset(client_id, clients_number, args.train_subset, args.images,
+                                     transform=train_transform_albu, limit=args.limit)
+        test_dataset = MNISTDataset(client_id, clients_number, args.test_subset, args.images,
+                                    transform=test_transform_albu, limit=args.limit)
 
     one_hot_labels = train_dataset.one_hot_labels
     classes_names = train_dataset.classes_names
@@ -129,7 +125,7 @@ def main():
     logger.info(f"beta: {args.beta}, weights: {ens.tolist()}")
     ens = ens.to(device=device, dtype=torch.float32)
 
-    criterion = nn.BCEWithLogitsLoss(weight=ens)
+    criterion = nn.BCEWithLogitsLoss(weight=ens).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
 

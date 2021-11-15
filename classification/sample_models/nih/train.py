@@ -288,4 +288,4 @@ for epoch in range(args.epochs):
     val_preds = torch.cat(val_preds, dim=0).tolist()
     val_labels = torch.cat(val_labels, dim=0).tolist()
     print("Validation report:")
-    print(classification_report(val_preds, val_labels, target_names=train_dataset.classes_names))
+    print(classification_report(val_labels, val_preds, target_names=train_dataset.classes_names))

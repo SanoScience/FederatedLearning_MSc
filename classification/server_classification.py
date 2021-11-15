@@ -15,10 +15,9 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 ROUND = 0
 MAX_ROUNDS = 0
-BATCH_SIZE = 8
-MAX_ROUND = 5
-CLIENTS = 3
-LOCAL_EPOCHS = 1
+BATCH_SIZE = 0
+CLIENTS = 0
+LOCAL_EPOCHS = 0
 
 loss = []
 acc = []
@@ -31,7 +30,8 @@ def get_eval_fn(model, args, logger):
         test_dataset = NIHDataset(-1, args.clients_number, args.test_subset, args.labels, args.images,
                                   transform=test_transform_albu, limit=args.limit)
     else:
-        test_dataset = MNISTDataset(-1, args.clients_number, args.test_subset, args.images)
+        test_dataset = MNISTDataset(-1, args.clients_number, args.test_subset, args.images,
+                                    transform=test_transform_albu, limit=args.limit)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                               num_workers=args.num_workers)
 
@@ -43,7 +43,7 @@ def get_eval_fn(model, args, logger):
     logger.info(f"beta: {args.beta}, weights: {ens.tolist()}")
     ens = ens.to(device=DEVICE, dtype=torch.float32)
 
-    criterion = nn.BCEWithLogitsLoss(weight=ens)
+    criterion = nn.BCEWithLogitsLoss(weight=ens).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
 
@@ -60,7 +60,7 @@ def get_eval_fn(model, args, logger):
 
         df = pd.DataFrame.from_dict(
             {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
-        df.to_csv(f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
+        df.to_csv(f"r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
         ROUND += 1
         return test_loss, {"test_acc": test_acc}
@@ -80,6 +80,9 @@ if __name__ == "__main__":
     model.cuda()
 
     MAX_ROUNDS = args.num_rounds
+    CLIENTS = args.clients_number
+    LOCAL_EPOCHS = args.local_epochs
+    BATCH_SIZE = args.batch_size
 
     # Define strategy
     strategy = fl.server.strategy.FedAvg(
