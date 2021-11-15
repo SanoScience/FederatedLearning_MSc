@@ -142,7 +142,7 @@ def main():
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
-            train(model, train_loader, criterion, optimizer, classes_names, epochs=args.epochs)
+            train(model, train_loader, criterion, optimizer, classes_names, epochs=args.local_epochs)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
