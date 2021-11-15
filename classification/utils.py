@@ -98,6 +98,8 @@ def test(model, device, logger, test_loader, criterion, optimizer, scheduler, cl
 
             test_running_loss += loss.item()
             test_running_accuracy += acc
+            if batch_idx % 50 == 0:
+                logger.info(f"batch_idx: {batch_idx}")
 
     test_loss = test_running_loss / len(test_loader)
     test_acc = test_running_accuracy / len(test_loader)
