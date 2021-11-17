@@ -86,9 +86,9 @@ if __name__ == "__main__":
 
     # Define strategy
     strategy = fl.server.strategy.FedAvg(
-        fraction_fit=0.75,
-        fraction_eval=0.75,
-        min_fit_clients=1,
+        fraction_fit=1,
+        fraction_eval=1,
+        min_fit_clients=4,
         min_available_clients=CLIENTS,
         eval_fn=get_eval_fn(model, args, logger),
         initial_parameters=[val.cpu().numpy() for _, val in model.state_dict().items()]
