@@ -17,7 +17,7 @@ class NIHDataset(Dataset):
         self.transform = transform
         self.classes_names = ["Atelectasis", "Cardiomegaly", "Effusion", "Infiltration", "Mass", "Nodule", "Pneumonia",
                               "Pneumothorax", "Consolidation", "Edema", "Emphysema",
-                              "Fibrosis", "Pleural_Thickening", "Hernia", "No Finding"]
+                              "Fibrosis", "Pleural_Thickening", "Hernia"]
 
         # IMAGES
         file = open(dataset_split_file, "r")
