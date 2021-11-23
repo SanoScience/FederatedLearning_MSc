@@ -139,7 +139,10 @@ def main():
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
-            train(net, train_loader, epochs=1)
+            # todo: use if necessary :)
+            # batch_size: int = config["batch_size"]
+            epochs: int = config["local_epochs"]
+            train(net, train_loader, epochs=epochs)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
