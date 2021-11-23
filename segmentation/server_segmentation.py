@@ -63,11 +63,11 @@ if __name__ == "__main__":
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
     # Define strategy
-    strategy = fl.server.strategy.FedAvg(
+    strategy = fl.server.strategy.FedAdam(
         fraction_fit=0.75,
         fraction_eval=0.75,
-        min_fit_clients=1,
-        min_eval_clients=1,
+        min_fit_clients=2,
+        min_eval_clients=2,
         eval_fn=get_eval_fn(net),
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
