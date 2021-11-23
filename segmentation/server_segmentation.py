@@ -82,14 +82,18 @@ def collect_args(le, a, c, r, mf, ff, bs):
 
 
 if __name__ == "__main__":
-    # Collect user's input
-    collect_args()
-
     # Initialize logger
     logger = logging.getLogger(__name__)
     hdlr = logging.StreamHandler()
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
+
+    logger.info("Parsing arguments")
+
+    # Collect user's input
+    collect_args()
+
+    logger.info("Arguments parsed successfully")
 
     # Define model
     net = UNet(input_channels=1,
