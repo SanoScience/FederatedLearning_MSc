@@ -64,13 +64,14 @@ def get_eval_fn(net):
 
 @click.command()
 @click.option('--le', default=LOCAL_EPOCHS, type=int, help='Local epochs performed by clients')
-@click.option('--a', default=FED_AGGREGATION_STRATEGY, type=str, help='Aggregation strategy (FedAvg, FedAdam, FedAdagrad')
+@click.option('--a', default=FED_AGGREGATION_STRATEGY, type=str,
+              help='Aggregation strategy (FedAvg, FedAdam, FedAdagrad')
 @click.option('--c', default=CLIENTS, type=int, help='Clients number')
 @click.option('--r', default=MAX_ROUND, type=int, help='Rounds of training')
 @click.option('--mf', default=MIN_FIT_CLIENTS, type=int, help='Min fit clients')
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
-def collect_args(le, a, c, r, mf, ff, bs):
+def run_server(le, a, c, r, mf, ff, bs):
     global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
@@ -80,8 +81,6 @@ def collect_args(le, a, c, r, mf, ff, bs):
     FRACTION_FIT = ff
     BATCH_SIZE = bs
 
-
-if __name__ == "__main__":
     # Initialize logger
     logger = logging.getLogger(__name__)
     hdlr = logging.StreamHandler()
@@ -89,11 +88,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     logger.info("Parsing arguments")
-
-    # Collect user's input
-    collect_args()
-
-    logger.info("Arguments parsed successfully")
 
     # Define model
     net = UNet(input_channels=1,
@@ -120,3 +114,7 @@ if __name__ == "__main__":
         config={"num_rounds": MAX_ROUND},
         strategy=strategy,
     )
+
+
+if __name__ == "__main__":
+    run_server()
