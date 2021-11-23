@@ -38,12 +38,7 @@ def get_eval_fn(model, args, logger):
     one_hot_labels = test_dataset.one_hot_labels
     classes_names = test_dataset.classes_names
 
-    ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
-    ens /= ens.max()
-    logger.info(f"beta: {args.beta}, weights: {ens.tolist()}")
-    ens = ens.to(device=DEVICE, dtype=torch.float32)
-
-    criterion = nn.BCEWithLogitsLoss(weight=ens).to(DEVICE)
+    criterion = nn.BCELoss(reduction='sum').to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
 
@@ -53,7 +48,7 @@ def get_eval_fn(model, args, logger):
         model.load_state_dict(state_dict, strict=True)
         test_acc, test_loss, report = test(model, DEVICE, logger, test_loader, criterion, optimizer, scheduler,
                                            classes_names)
-        torch.save(model.state_dict(), f'efficientnet-b7_{ROUND}')
+        torch.save(model.state_dict(), f'efficientnet-b4_{ROUND}')
         loss.append(test_loss)
         acc.append(test_acc)
         reports.append(report)
@@ -76,7 +71,7 @@ if __name__ == "__main__":
 
     args = parse_args()
 
-    model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
+    model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes, in_channels=args.in_channels)
     model.cuda()
 
     MAX_ROUNDS = args.num_rounds
