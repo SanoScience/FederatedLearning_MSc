@@ -114,18 +114,13 @@ def main():
     clients_number = args.clients_number
     # Load model
     # EFFNET
-    model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
+    model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes, in_channels=args.in_channels)
     model.cuda()
 
     # Load data
     train_loader, test_loader, one_hot_labels, classes_names = load_data(client_id, clients_number)
 
-    ens = get_ENS_weights(args.classes, list(sum(one_hot_labels)), beta=args.beta)
-    ens /= ens.max()
-    logger.info(f"beta: {args.beta}, weights: {ens.tolist()}")
-    ens = ens.to(device=device, dtype=torch.float32)
-
-    criterion = nn.BCEWithLogitsLoss(weight=ens).to(device)
+    criterion = nn.BCELoss(reduction='sum').to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
 

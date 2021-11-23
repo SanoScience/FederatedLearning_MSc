@@ -18,13 +18,6 @@ def accuracy_score(pred, actual):
     return correct / total
 
 
-def get_ENS_weights(num_classes, samples_per_class, beta=1):
-    ens = 1.0 - np.power([beta] * num_classes, np.array(samples_per_class, dtype=np.float))
-    weights = (1.0 - beta) / np.array(ens)
-    weights = weights / np.sum(weights) * num_classes
-    return torch.as_tensor(weights, dtype=torch.float)
-
-
 def get_state_dict(model, parameters):
     params_dict = []
     for i, k in enumerate(list(model.state_dict().keys())):
@@ -149,7 +142,7 @@ def parse_args():
                         help="Number of local epochs")
     parser.add_argument("--size",
                         type=int,
-                        default=512,
+                        default=380,
                         help="input image size")
     parser.add_argument("--num_workers",
                         type=int,
@@ -157,7 +150,7 @@ def parse_args():
                         help="Number of workers for processing the data")
     parser.add_argument("--classes",
                         type=int,
-                        default=15,
+                        default=14,
                         help="Number of classes in the dataset")
     parser.add_argument("--batch_size",
                         type=int,
@@ -167,21 +160,14 @@ def parse_args():
                         type=float,
                         default=1e-3,
                         help="Number of learning rate")
-    parser.add_argument("--beta",
-                        type=float,
-                        default=0.999,
-                        help="Param for weights - effective number")
     parser.add_argument("--weight_decay",
                         type=float,
-                        default=0.0001,
+                        default=0.0,
                         help="Number of weight decay")
     parser.add_argument("--device_id",
                         type=str,
                         default="0",
                         help="GPU ID")
-    parser.add_argument("--titan",
-                        action='store_true',
-                        help="machine to run")
     parser.add_argument("--limit",
                         type=int,
                         default=-1,
