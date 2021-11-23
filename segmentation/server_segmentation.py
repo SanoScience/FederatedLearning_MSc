@@ -1,8 +1,7 @@
 import logging
 import socket
-import sys
-import click
 
+import click
 import flwr as fl
 import pandas as pd
 from torch.utils.data import DataLoader
@@ -19,10 +18,14 @@ BATCH_SIZE = 2
 ROUND = 0
 MAX_ROUND = 5
 CLIENTS = 3
-FED_AGGREGATION_STRATEGY = 'fed_avg'
+FED_AGGREGATION_STRATEGY = 'FedAvg'
 LOCAL_EPOCHS = 1
 MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
+
+strategies = {'FedAdam': fl.server.strategy.FedAdam,
+              'FedAvg': fl.server.strategy.FedAvg,
+              'FedAdagrad': fl.server.strategy.FedAdagrad}
 
 
 def fit_config(rnd: int):
@@ -61,7 +64,7 @@ def get_eval_fn(net):
 
 @click.command()
 @click.option('--le', default=LOCAL_EPOCHS, type=int, help='Local epochs performed by clients')
-@click.option('--a', default=FED_AGGREGATION_STRATEGY, type=str, help='Aggregation strategy')
+@click.option('--a', default=FED_AGGREGATION_STRATEGY, type=str, help='Aggregation strategy (FedAvg, FedAdam, FedAdagrad')
 @click.option('--c', default=CLIENTS, type=int, help='Clients number')
 @click.option('--r', default=MAX_ROUND, type=int, help='Rounds of training')
 @click.option('--mf', default=MIN_FIT_CLIENTS, type=int, help='Min fit clients')
@@ -79,24 +82,22 @@ def collect_args(le, a, c, r, mf, ff, bs):
 
 
 if __name__ == "__main__":
-    arguments = sys.argv
-    if len(arguments) < 4:
-        raise TypeError("Server takes 3 arguments: server address, client id and clients number")
+    # Collect user's input
+    collect_args()
 
-    local_epochs = arguments[1]
-    averaging_algorithm = arguments[2]
-    clients_number = int(arguments[3])
-
+    # Initialize logger
     logger = logging.getLogger(__name__)
+    hdlr = logging.StreamHandler()
+    logger.addHandler(hdlr)
+    logger.setLevel(logging.INFO)
+
+    # Define model
     net = UNet(input_channels=1,
                output_channels=64,
                n_classes=1).to(DEVICE)
 
-    hdlr = logging.StreamHandler()
-    logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
     # Define strategy
-    strategy = fl.server.strategy.FedAdam(
+    strategy = strategies[FED_AGGREGATION_STRATEGY](
         fraction_fit=FRACTION_FIT,
         fraction_eval=0.75,
         min_fit_clients=MIN_FIT_CLIENTS,
@@ -106,8 +107,9 @@ if __name__ == "__main__":
         on_fit_config_fn=fit_config,
         initial_parameters=[val.cpu().numpy() for _, val in net.state_dict().items()]
     )
-    server_addr = socket.gethostname()
+
     # Start server
+    server_addr = socket.gethostname()
     logger.info(f"Starting server on {server_addr}")
     fl.server.start_server(
         server_address=f"{server_addr}:8081",
