@@ -49,7 +49,8 @@ def get_eval_fn(net):
         state_dict = get_state_dict(net, weights)
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
-        torch.save(net.state_dict(), f'unet_{ROUND}_jacc_{val_jacc}_loss_{val_loss}_agg_{FED_AGGREGATION_STRATEGY}')
+        torch.save(net.state_dict(),
+                   f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}_agg_{FED_AGGREGATION_STRATEGY}')
         loss.append(val_loss)
         jacc.append(jacc)
         if MAX_ROUND == ROUND:
@@ -57,7 +58,7 @@ def get_eval_fn(net):
             df.to_csv(
                 f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}.csv")
         ROUND += 1
-        return val_loss, {"val_jacc": val_jacc, "val_loss": val_loss}
+        return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
     return evaluate
 
