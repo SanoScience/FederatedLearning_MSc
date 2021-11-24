@@ -57,7 +57,7 @@ def get_eval_fn(net):
             df.to_csv(
                 f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}.csv")
         ROUND += 1
-        return val_loss, {"val_jacc": val_jacc}
+        return val_loss, {"val_jacc": val_jacc, "val_loss": val_loss}
 
     return evaluate
 
