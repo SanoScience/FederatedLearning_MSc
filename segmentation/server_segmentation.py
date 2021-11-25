@@ -104,7 +104,8 @@ def run_server(le, a, c, r, mf, ff, bs):
         eval_fn=get_eval_fn(net),
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
-        initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()])
+        initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()]),
+        eta=1e-2
     )
 
     # Start server
