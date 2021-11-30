@@ -1,11 +1,12 @@
 import logging
 import matplotlib.pyplot as plt
-
+import cv2
 from torch.utils.data import DataLoader
 from segmentation.common import *
 from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
+import numpy as np
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
@@ -45,8 +46,13 @@ for batch_idx, (images, masks) in enumerate(test_loader):
     # val_running_jac += jac.item()
     img = images[0, 0, :]
     mask = masks[0, 0, :]
+    img_np = img.numpy()
     out = outputs_masks[0, 0, :]
-    res = torch.cat((img, mask, out), 1).cpu().detach()
+    out_np = out.detach().numpy()
+    # superposed = cv2.bitwise_and(img.numpy(), out_np)
+    superposed = np.copy(img_np)
+    superposed[out_np < 0.05] = 0
+    res = torch.cat((img, mask, out, torch.from_numpy(superposed)), 1).cpu().detach()
     plt.imshow(res)
     plt.show()
 
