@@ -31,8 +31,8 @@ class RSNADataset(Dataset):
         self.crop_source = crop_source
         self.augmentation_level = augmentation_level
 
-        # Target = 1 => Pneumonia, Target = 0 => No pneumonia
-        self.classes_names = ["No pneumonia", "Pneumonia"]
+        # "Normal"=0, "No Lung Opacity / Not Normal"=1, "Lung Opacity"=2
+        self.classes_names = ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
 
         ids_labels_df = pd.read_csv(ids_labels_file)
 

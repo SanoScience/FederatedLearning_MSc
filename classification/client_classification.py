@@ -131,8 +131,8 @@ def train_RSNA(model, train_loader, criterion, optimizer, classes_names, epochs=
 
 
 def load_data_NIH(client_id, clients_number):
-    train_transform_albu = get_train_transformation_albu(args.size, args.size)
-    test_transform_albu = get_test_transform_albu(args.size, args.size)
+    train_transform_albu = get_train_transformation_albu_NIH(args.size, args.size)
+    test_transform_albu = get_test_transform_albu_NIH(args.size, args.size)
 
     if args.dataset == "chest":
         train_dataset = NIHDataset(client_id, clients_number, args.train_subset, args.labels, args.images,

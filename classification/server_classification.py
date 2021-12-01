@@ -107,7 +107,7 @@ class RSNAStrategyFactory:
             model.load_state_dict(state_dict, strict=True)
             test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
                                                    classes_names)
-            torch.save(model.state_dict(), f'tf_efficientnet_b4_ns-{ROUND}')
+            torch.save(model.state_dict(), f'efficientnet_b4-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
             reports.append(report)

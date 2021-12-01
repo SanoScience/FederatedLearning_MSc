@@ -223,7 +223,7 @@ def parse_args():
                         help="GPU ID")
     parser.add_argument("--limit",
                         type=int,
-                        default=200,
+                        default=-1,
                         help="use to limit amount of data")
 
     parser.add_argument("--node_name",
