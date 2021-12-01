@@ -9,10 +9,8 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import numpy as np
 import argparse
 
-from utils import accuracy
-
-DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
-
+NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
+RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 
 def accuracy_score(pred, actual):
     act_labels = actual == 1
@@ -173,19 +171,19 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(DATASET_PATH_BASE, "images/"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
                         help="Path to the images")
     parser.add_argument("--labels",
                         type=str,
-                        default=os.path.join(DATASET_PATH_BASE, "labels/nih_data_labels.csv"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "nih_data_labels.csv"),
                         help="Path to the labels")
     parser.add_argument("--train_subset",
                         type=str,
-                        default=os.path.join(DATASET_PATH_BASE, "partitions/nih_train_val_list.txt"),
+                        default=os.path.join(NIH_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
                         help="Path to the file with training/validation dataset files list")
     parser.add_argument("--test_subset",
                         type=str,
-                        default=os.path.join(DATASET_PATH_BASE, "partitions/nih_test_list.txt"),
+                        default=os.path.join(NIH_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
                         help="Path to the file with test dataset files list")
     parser.add_argument("--in_channels",
                         type=int,
@@ -225,7 +223,7 @@ def parse_args():
                         help="GPU ID")
     parser.add_argument("--limit",
                         type=int,
-                        default=-1,
+                        default=100,
                         help="use to limit amount of data")
 
     parser.add_argument("--node_name",
