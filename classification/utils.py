@@ -4,11 +4,15 @@ from collections import OrderedDict
 from sklearn.metrics import classification_report
 import albumentations as albu
 from albumentations.pytorch import ToTensorV2
+import torch.nn.functional as F
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import numpy as np
 import argparse
 
+from utils import accuracy
+
 DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
+
 
 def accuracy_score(pred, actual):
     act_labels = actual == 1
@@ -16,6 +20,13 @@ def accuracy_score(pred, actual):
     correct = same.sum().item()
     total = actual.shape[0] * actual.shape[1]
     return correct / total
+
+
+def accuracy(y_pred, y_true):
+    y_pred = F.softmax(y_pred, dim=1)
+    top_p, top_class = y_pred.topk(1, dim=1)
+    equals = top_class == y_true.view(*top_class.shape)
+    return torch.mean(equals.type(torch.FloatTensor))
 
 
 def get_state_dict(model, parameters):
@@ -28,7 +39,7 @@ def get_state_dict(model, parameters):
     return OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
 
 
-def get_train_transformation_albu(height, width):
+def get_train_transformation_albu_NIH(height, width):
     return albu.Compose([
         albu.RandomResizedCrop(height=height, width=width, scale=(0.5, 1.0),
                                ratio=(0.8, 1.2), interpolation=1, p=1.0),
@@ -54,13 +65,13 @@ def get_train_transformation_albu(height, width):
             albu.IAAEmboss(),
             albu.RandomBrightnessContrast(),
         ], p=0.25),
-        albu.CoarseDropout(fill_value=0, p=0.25, max_height=32, max_width=32, max_holes=8),
+        # albu.CoarseDropout(fill_value=0, p=0.25, max_height=32, max_width=32, max_holes=8),
         albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
         ToTensorV2(),
     ])
 
 
-def get_test_transform_albu(height, width):
+def get_test_transform_albu_NIH(height, width):
     return albu.Compose([
         albu.Resize(height, width),
         albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
@@ -68,7 +79,7 @@ def get_test_transform_albu(height, width):
     ])
 
 
-def test(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
+def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
     test_preds = []
@@ -98,6 +109,50 @@ def test(model, device, logger, test_loader, criterion, optimizer, scheduler, cl
     test_acc = test_running_accuracy / len(test_loader)
 
     scheduler.step(test_loss)
+
+    for param_group in optimizer.param_groups:
+        logger.info(f"Current lr: {param_group['lr']}")
+
+    logger.info(f" Test Loss: {test_loss:.4f}"
+                f" Test Acc: {test_acc:.4f}")
+
+    test_preds = torch.cat(test_preds, dim=0).tolist()
+    test_labels = torch.cat(test_labels, dim=0).tolist()
+    logger.info("Test report:")
+    report = classification_report(test_labels, test_preds, target_names=classes_names)
+    logger.info(report)
+    return test_acc, test_loss, report
+
+
+def test_RSNA(model, device, logger, test_loader, criterion, optimizer, classes_names):
+    test_running_loss = 0.0
+    test_running_accuracy = 0.0
+    test_preds = []
+    test_labels = []
+    model.eval()
+    logger.info("Testing: ")
+    with torch.no_grad():
+        for batch_idx, (image, batch_label) in enumerate(test_loader):
+            image = image.to(device=device, dtype=torch.float32)
+            batch_label = batch_label.to(device=device, dtype=torch.float32)
+
+            logits = model(image)
+            loss = criterion(logits, batch_label)
+
+            test_running_loss += loss.item()
+            test_running_accuracy += accuracy(logits, batch_label)
+
+            y_pred = F.softmax(logits, dim=1)
+            top_p, top_class = y_pred.topk(1, dim=1)
+
+            test_labels.append(batch_label.view(*top_class.shape))
+            test_preds.append(top_class)
+
+            if batch_idx % 50 == 0:
+                logger.info(f"batch_idx: {batch_idx}")
+
+    test_loss = test_running_loss / len(test_loader)
+    test_acc = test_running_accuracy / len(test_loader)
 
     for param_group in optimizer.param_groups:
         logger.info(f"Current lr: {param_group['lr']}")

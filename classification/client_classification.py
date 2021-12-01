@@ -10,10 +10,15 @@ from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import classification_report
 
 from fl_nih_dataset import NIHDataset
+from fl_rsna_dataset import RSNADataset
 
 from fl_mnist_dataset import MNISTDataset
-from utils import get_state_dict, get_train_transformation_albu, accuracy_score, test, \
-    get_test_transform_albu, get_ENS_weights, parse_args
+from utils import get_state_dict, get_train_transformation_albu, accuracy_score, test_NIH, test_RSNA, \
+    get_test_transform_albu, parse_args, accuracy
+
+import timm
+import torch.nn.functional as F
+
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -31,7 +36,7 @@ args = parse_args()
 # os.environ['CUDA_VISIBLE_DEVICES'] = args.device_id
 
 
-def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
+def train_NIH(model, train_loader, criterion, optimizer, classes_names, epochs=1):
     for epoch in range(epochs):
         start_time_epoch = time.time()
         logger.info(f"Starting epoch {epoch + 1}")
@@ -77,7 +82,55 @@ def train(model, train_loader, criterion, optimizer, classes_names, epochs=1):
                     f" Training Acc: {train_acc:.4f}")
 
 
-def load_data(client_id, clients_number):
+def train_RSNA(model, train_loader, criterion, optimizer, classes_names, epochs=1):
+    for epoch in range(epochs):
+        start_time_epoch = time.time()
+        logger.info(f"Starting epoch {epoch + 1}")
+        model.train()
+        running_loss = 0.0
+        running_accuracy = 0.0
+        preds = []
+        labels = []
+
+        for batch_idx, (images, batch_labels) in enumerate(train_loader):
+            images = images.to(device=device, dtype=torch.float32)
+            batch_labels = batch_labels.to(device=device, dtype=torch.float32)
+
+            logits = model(images)
+            loss = criterion(logits, batch_labels)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+            running_accuracy += accuracy(logits, batch_labels)
+
+            y_pred = F.softmax(logits, dim=1)
+            top_p, top_class = y_pred.topk(1, dim=1)
+
+            labels.append(batch_labels.view(*top_class.shape))
+            preds.append(top_class)
+
+            if batch_idx % 10 == 0:
+                logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                            f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
+                            f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
+                            f" Time: {time.time() - start_time_epoch:2f}")
+
+        preds = torch.cat(preds, dim=0).tolist()
+        labels = torch.cat(labels, dim=0).tolist()
+        logger.info("Training report:")
+        logger.info(classification_report(labels, preds, target_names=classes_names))
+
+        train_loss = running_loss / len(train_loader)
+        train_acc = running_accuracy / len(train_loader)
+
+        logger.info(f" Training Loss: {train_loss:.4f}"
+                    f" Training Acc: {train_acc:.4f}")
+
+
+def load_data_NIH(client_id, clients_number):
     train_transform_albu = get_train_transformation_albu(args.size, args.size)
     test_transform_albu = get_test_transform_albu(args.size, args.size)
 
@@ -102,9 +155,111 @@ def load_data(client_id, clients_number):
     return train_loader, test_loader, one_hot_labels, classes_names
 
 
+def load_data_RSNA(client_id, clients_number):
+    train_dataset = RSNADataset(client_id, clients_number, args.train_subset, args.size, args.images,
+                                augmentation_level=10, is_training=True, debug=False, limit=args.limit)
+    test_dataset = RSNADataset(client_id, clients_number, args.test_subset, args.size, args.images,
+                               is_training=False, debug=False, limit=args.limit)
+    classes_names = train_dataset.classes_names
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
+                                               num_workers=args.num_workers)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+                                              num_workers=args.num_workers)
+    return train_loader, test_loader, classes_names
+
+
 # #############################################################################
 # 2. Federation of the pipeline with Flower
 # #############################################################################
+
+class ClassificationNIHClient(fl.client.NumPyClient):
+    def __init__(self, client_id, clients_number):
+        # Load model
+        # EFFNET
+        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes,
+                                                  in_channels=args.in_channels)
+        self.model.cuda()
+
+        # Load data
+        self.train_loader, self.test_loader, self.one_hot_labels, self.classes_names = load_data_NIH(client_id,
+                                                                                                     clients_number)
+
+        self.criterion = nn.BCELoss(reduction='sum').to(device)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=5, min_lr=1e-6)
+
+    def get_parameters(self):
+        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+
+    def set_parameters(self, parameters):
+        logger.info("Loading parameters...")
+        state_dict = get_state_dict(self.model, parameters)
+        self.model.load_state_dict(state_dict, strict=True)
+        logger.info("Parameters loaded")
+
+    def fit(self, parameters, config):
+        self.set_parameters(parameters)
+        train_NIH(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+                  epochs=args.local_epochs)
+        return self.get_parameters(), len(self.train_loader), {}
+
+    def evaluate(self, parameters, config):
+        self.set_parameters(parameters)
+        loss, accuracy, report = test_NIH(self.model, self.test_loader, device, logger, self.criterion, self.optimizer,
+                                          self.scheduler, self.classes_names)
+        logger.info(f"Loss: {loss}, accuracy: {accuracy}")
+        logger.info(report)
+        return float(loss), len(self.test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
+
+
+class ClassificationRSNAClient(fl.client.NumPyClient):
+    def __init__(self, client_id, clients_number):
+        # Load model
+        # EFFNET
+        self.model = timm.create_model('tf_efficientnet_b4_ns', pretrained=True)
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.classifier = nn.Sequential(
+            nn.Linear(in_features=1792, out_features=625),  # 1792 is the original in_features
+            nn.ReLU(),  # ReLu to be the activation function
+            nn.Dropout(p=0.3),
+            nn.Linear(in_features=625, out_features=256),
+            nn.ReLU(),
+            nn.Linear(in_features=256, out_features=2),
+        )
+        self.model.to(device)
+
+        # Load data
+        self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
+
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+
+    def get_parameters(self):
+        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+
+    def set_parameters(self, parameters):
+        logger.info("Loading parameters...")
+        state_dict = get_state_dict(self.model, parameters)
+        self.model.load_state_dict(state_dict, strict=True)
+        logger.info("Parameters loaded")
+
+    def fit(self, parameters, config):
+        self.set_parameters(parameters)
+        train_RSNA(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+                   epochs=args.local_epochs)
+        return self.get_parameters(), len(self.train_loader), {}
+
+    def evaluate(self, parameters, config):
+        self.set_parameters(parameters)
+        loss, accuracy, report = test_RSNA(self.model, self.test_loader, device, logger, self.criterion, self.optimizer,
+                                           self.classes_names)
+        logger.info(f"Loss: {loss}, accuracy: {accuracy}")
+        logger.info(report)
+        return float(loss), len(self.test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
+
 
 def main():
     """Create model, load data, define Flower client, start Flower client."""
@@ -112,45 +267,10 @@ def main():
     server_addr = args.node_name
     client_id = args.client_id
     clients_number = args.clients_number
-    # Load model
-    # EFFNET
-    model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes, in_channels=args.in_channels)
-    model.cuda()
-
-    # Load data
-    train_loader, test_loader, one_hot_labels, classes_names = load_data(client_id, clients_number)
-
-    criterion = nn.BCELoss(reduction='sum').to(device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, min_lr=1e-6)
-
-    # Flower client
-    class ClassificationClient(fl.client.NumPyClient):
-        def get_parameters(self):
-            return [val.cpu().numpy() for _, val in model.state_dict().items()]
-
-        def set_parameters(self, parameters):
-            logger.info("Loading parameters...")
-            state_dict = get_state_dict(model, parameters)
-            model.load_state_dict(state_dict, strict=True)
-            logger.info("Parameters loaded")
-
-        def fit(self, parameters, config):
-            self.set_parameters(parameters)
-            train(model, train_loader, criterion, optimizer, classes_names, epochs=args.local_epochs)
-            return self.get_parameters(), len(train_loader), {}
-
-        def evaluate(self, parameters, config):
-            self.set_parameters(parameters)
-            loss, accuracy, report = test(model, test_loader, device, logger, criterion, optimizer, scheduler,
-                                          classes_names)
-            logger.info(f"Loss: {loss}, accuracy: {accuracy}")
-            logger.info(report)
-            return float(loss), len(test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
 
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationClient())
+    fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationRSNAClient(client_id, clients_number))
 
 
 if __name__ == "__main__":
