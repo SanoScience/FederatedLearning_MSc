@@ -85,7 +85,7 @@ class RSNAStrategyFactory:
     def __init__(self, args):
         self.args = args
         # EFFNET
-        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=2,
+        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes,
                                                   in_channels=args.in_channels)
         self.model.cuda()
 

@@ -203,7 +203,7 @@ def parse_args():
                         help="Number of workers for processing the data")
     parser.add_argument("--classes",
                         type=int,
-                        default=14,
+                        default=3,
                         help="Number of classes in the dataset")
     parser.add_argument("--batch_size",
                         type=int,
