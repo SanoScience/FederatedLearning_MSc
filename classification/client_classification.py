@@ -19,7 +19,6 @@ from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_sc
 import timm
 import torch.nn.functional as F
 
-
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
@@ -217,7 +216,7 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number):
         # Load model
         # EFFNET
-        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=2,
+        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes,
                                                   in_channels=args.in_channels)
         self.model.cuda()
 
