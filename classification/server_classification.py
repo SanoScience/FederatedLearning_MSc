@@ -85,19 +85,9 @@ class RSNAStrategyFactory:
     def __init__(self, args):
         self.args = args
         # EFFNET
-        self.model = timm.create_model('tf_efficientnet_b4_ns', pretrained=True)
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        self.model.classifier = nn.Sequential(
-            nn.Linear(in_features=1792, out_features=625),  # 1792 is the original in_features
-            nn.ReLU(),  # ReLu to be the activation function
-            nn.Dropout(p=0.3),
-            nn.Linear(in_features=625, out_features=256),
-            nn.ReLU(),
-            nn.Linear(in_features=256, out_features=2),
-        )
-        self.model.to(DEVICE)
+        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=2,
+                                                  in_channels=args.in_channels)
+        self.model.cuda()
 
     def get_eval_fn(self, model, args, logger):
         test_dataset = RSNADataset(-1, args.clients_number, args.test_subset, args.size, args.images,
