@@ -62,11 +62,11 @@ def train(net, train_loader, epochs):
             out = outputs_masks[0, 0, :]
             res = torch.cat((mask, out), 1).cpu().detach()
 
-            print('    ', end='')
-            print('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
-                  .format(batch_idx + 1, len(train_loader),
-                          loss.item(), jac.item(),
-                          time.time() - start_time_epoch))
+            logger.info('    ', end='')
+            logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
+                        .format(batch_idx + 1, len(train_loader),
+                                loss.item(), jac.item(),
+                                time.time() - start_time_epoch))
 
 
 def load_data(client_id, clients_number):
@@ -139,7 +139,10 @@ def main():
 
         def fit(self, parameters, config):
             self.set_parameters(parameters)
-            train(net, train_loader, epochs=1)
+            # todo: use if necessary :)
+            # batch_size: int = config["batch_size"]
+            epochs: int = config["local_epochs"]
+            train(net, train_loader, epochs=epochs)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
