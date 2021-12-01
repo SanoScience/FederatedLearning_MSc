@@ -13,8 +13,8 @@ from fl_nih_dataset import NIHDataset
 from fl_rsna_dataset import RSNADataset
 
 from fl_mnist_dataset import MNISTDataset
-from utils import get_state_dict, get_train_transformation_albu, accuracy_score, test_NIH, test_RSNA, \
-    get_test_transform_albu, parse_args, accuracy
+from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_score, test_NIH, test_RSNA, \
+    get_test_transform_albu_NIH, parse_args, accuracy
 
 import timm
 import torch.nn.functional as F
@@ -94,7 +94,7 @@ def train_RSNA(model, train_loader, criterion, optimizer, classes_names, epochs=
 
         for batch_idx, (images, batch_labels) in enumerate(train_loader):
             images = images.to(device=device, dtype=torch.float32)
-            batch_labels = batch_labels.to(device=device, dtype=torch.float32)
+            batch_labels = batch_labels.to(device=device)
 
             logits = model(images)
             loss = criterion(logits, batch_labels)

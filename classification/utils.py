@@ -132,7 +132,7 @@ def test_RSNA(model, device, logger, test_loader, criterion, optimizer, classes_
     with torch.no_grad():
         for batch_idx, (image, batch_label) in enumerate(test_loader):
             image = image.to(device=device, dtype=torch.float32)
-            batch_label = batch_label.to(device=device, dtype=torch.float32)
+            batch_label = batch_label.to(device=device)
 
             logits = model(image)
             loss = criterion(logits, batch_label)
@@ -179,11 +179,11 @@ def parse_args():
                         help="Path to the labels")
     parser.add_argument("--train_subset",
                         type=str,
-                        default=os.path.join(NIH_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
                         help="Path to the file with training/validation dataset files list")
     parser.add_argument("--test_subset",
                         type=str,
-                        default=os.path.join(NIH_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
                         help="Path to the file with test dataset files list")
     parser.add_argument("--in_channels",
                         type=int,
@@ -223,7 +223,7 @@ def parse_args():
                         help="GPU ID")
     parser.add_argument("--limit",
                         type=int,
-                        default=100,
+                        default=-1,
                         help="use to limit amount of data")
 
     parser.add_argument("--node_name",

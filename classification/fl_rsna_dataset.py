@@ -13,6 +13,9 @@ import skimage.transform
 from skimage.transform import SimilarityTransform, AffineTransform
 import math
 from imgaug import augmenters as iaa
+from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from torchvision import transforms
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -43,7 +46,7 @@ class RSNADataset(Dataset):
         print(f'Dataset file:{ids_labels_file}, len = {images_count}')
 
         # LABELS
-        self.labels = [os.path.join(images_source, row['label']) for _, row in ids_labels_df.iterrows()]
+        self.labels = [row['label'] for _, row in ids_labels_df.iterrows()]
 
         if limit != -1:
             self.images = self.images[0:limit]
@@ -62,7 +65,6 @@ class RSNADataset(Dataset):
         try:
             dcm_data = pydicom.read_file(img_path)
             img = dcm_data.pixel_array
-            print('img shape', img.shape)
             return img
         except:
             pass
@@ -142,7 +144,13 @@ class RSNADataset(Dataset):
                         :, :, 0].astype(np.float32)
                         / 255.0
                 )
-        return crop, label
+        im = Image.fromarray(crop).convert('RGB')
+        im_array = np.array(im)
+        transform_norm = transforms.Compose([transforms.ToTensor(),
+            transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD)
+        ])
+        img_normalized = transform_norm(im_array)
+        return np.array(img_normalized), label
 
 
 class TransformCfg:

@@ -82,7 +82,7 @@ class NIHStrategyFactory:
 
 
 class RSNAStrategyFactory:
-    def __int__(self, args):
+    def __init__(self, args):
         self.args = args
         # EFFNET
         self.model = timm.create_model('tf_efficientnet_b4_ns', pretrained=True)
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     BATCH_SIZE = args.batch_size
 
     # Define strategy
-    factory = RSNAStrategyFactory()
+    factory = RSNAStrategyFactory(args)
     strategy = factory.get_strategy()
 
     server_addr = socket.gethostname()
