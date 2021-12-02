@@ -12,6 +12,8 @@ import argparse
 
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
+COVID19_DATASET_PATH_BASE = os.path.expandvars(
+    "$SCRATCH/fl_msc/classification/COVID-19_Radiography_Dataset/")
 
 
 def accuracy_score(pred, actual):
@@ -199,7 +201,7 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
+                        default=os.path.join(COVID19_DATASET_PATH_BASE, "normal_covid/"),
                         help="Path to the images")
     parser.add_argument("--labels",
                         type=str,
@@ -207,11 +209,11 @@ def parse_args():
                         help="Path to the labels")
     parser.add_argument("--train_subset",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
+                        default=os.path.join(COVID19_DATASET_PATH_BASE, "train_labels_covid_normal.csv"),
                         help="Path to the file with training/validation dataset files list")
     parser.add_argument("--test_subset",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
+                        default=os.path.join(COVID19_DATASET_PATH_BASE, "test_labels_covid_normal.csv"),
                         help="Path to the file with test dataset files list")
     parser.add_argument("--in_channels",
                         type=int,
@@ -223,7 +225,7 @@ def parse_args():
                         help="Number of local epochs")
     parser.add_argument("--size",
                         type=int,
-                        default=380,
+                        default=224,
                         help="input image size")
     parser.add_argument("--num_workers",
                         type=int,
