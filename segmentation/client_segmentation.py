@@ -93,22 +93,22 @@ def load_data(client_id, clients_number):
                                         image_size=IMAGE_SIZE,
                                         mode="valid")
 
-    ids = np.array([i for i in range(len(dataset))])
-    np.random.shuffle(ids)
-    train_ids, val_ids = train_test_split(ids, train_size=1.0)
-    logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
-    train_sampler = SubsetRandomSampler(train_ids)
-    val_sampler = SubsetRandomSampler(val_ids)
+    # ids = np.array([i for i in range(len(dataset))])
+    # np.random.shuffle(ids)
+    # train_ids, val_ids = train_test_split(ids)
+    # logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
+    # train_sampler = SubsetRandomSampler(train_ids)
+    # val_sampler = SubsetRandomSampler(val_ids)
 
     train_loader = DataLoader(train_dataset,
-                              batch_size=BATCH_SIZE,
-                              sampler=train_sampler)
+                              batch_size=BATCH_SIZE,)
+                              # sampler=train_sampler)
 
-    val_loader = DataLoader(validation_dataset,
-                            batch_size=BATCH_SIZE,
-                            sampler=val_sampler)
+    # val_loader = DataLoader(validation_dataset,
+    #                         batch_size=BATCH_SIZE,
+    #                         sampler=val_sampler)
 
-    return train_loader, val_loader
+    return train_loader, None
 
 
 def main():
