@@ -7,10 +7,12 @@ from albumentations.pytorch import ToTensorV2
 import torch.nn.functional as F
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import numpy as np
+import torchvision
 import argparse
 
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
+
 
 def accuracy_score(pred, actual):
     act_labels = actual == 1
@@ -74,6 +76,32 @@ def get_test_transform_albu_NIH(height, width):
         albu.Resize(height, width),
         albu.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
         ToTensorV2(),
+    ])
+
+
+def get_train_transform_covid_19_rd():
+    return torchvision.transforms.Compose([
+        # Converting images to the size that the model expects
+        torchvision.transforms.Resize(size=(224, 224)),
+        torchvision.transforms.RandomHorizontalFlip(),  # A RandomHorizontalFlip to augment our data
+        torchvision.transforms.ToTensor(),  # Converting to tensor
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+        # Normalizing the data to the data that the ResNet18 was trained on
+
+    ])
+
+
+def get_test_transform_covid_19_rd():
+    return torchvision.transforms.Compose([
+        # Converting images to the size that the model expects
+        torchvision.transforms.Resize(size=(224, 224)),
+        # We don't do data augmentation in the test/val set
+        torchvision.transforms.ToTensor(),  # Converting to tensor
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+        # Normalizing the data to the data that the ResNet18 was trained on
+
     ])
 
 
@@ -203,7 +231,7 @@ def parse_args():
                         help="Number of workers for processing the data")
     parser.add_argument("--classes",
                         type=int,
-                        default=3,
+                        default=2,
                         help="Number of classes in the dataset")
     parser.add_argument("--batch_size",
                         type=int,

@@ -10,8 +10,11 @@ import pandas as pd
 from fl_mnist_dataset import MNISTDataset
 from fl_nih_dataset import NIHDataset
 from fl_rsna_dataset import RSNADataset
-from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_RSNA
+from fl_covid_19_radiography_dataset import Covid19RDDataset
+from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_RSNA, \
+    get_test_transform_covid_19_rd, get_train_transform_covid_19_rd
 import timm
+import torchvision
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -106,7 +109,7 @@ class RSNAStrategyFactory:
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
             test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
-                                                   classes_names)
+                                                    classes_names)
             torch.save(model.state_dict(), f'efficientnet_b4-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
@@ -115,6 +118,58 @@ class RSNAStrategyFactory:
             df = pd.DataFrame.from_dict(
                 {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
             df.to_csv(f"rsna_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
+
+            ROUND += 1
+            return test_loss, {"test_acc": test_acc}
+
+        return evaluate
+
+    def get_strategy(self):
+        return fl.server.strategy.FedAvg(
+            fraction_fit=1,
+            fraction_eval=1,
+            min_fit_clients=4,
+            min_available_clients=CLIENTS,
+            eval_fn=self.get_eval_fn(self.model, self.args, logger),
+            initial_parameters=[val.cpu().numpy() for _, val in self.model.state_dict().items()]
+        )
+
+
+class Covid19RDStrategyFactory:
+    def __init__(self, args):
+        self.args = args
+        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=2)
+        self.model.cuda()
+
+    def get_eval_fn(self, model, args, logger):
+        test_transform = get_test_transform_covid_19_rd()
+        test_dataset = Covid19RDDataset(-1, args.clients_number, args.test_subset, args.images,
+                                        transform=test_transform,
+                                        debug=False, limit=args.limit)
+
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+                                                  num_workers=args.num_workers)
+
+        classes_names = test_dataset.classes_names
+
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=3e-5)
+
+        def evaluate(weights):
+            global ROUND
+            state_dict = get_state_dict(model, weights)
+            model.load_state_dict(state_dict, strict=True)
+            test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
+                                                    classes_names)
+            torch.save(model.state_dict(), f'resnet_18-{ROUND}')
+            loss.append(test_loss)
+            acc.append(test_acc)
+            reports.append(report)
+
+            df = pd.DataFrame.from_dict(
+                {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
+            df.to_csv(f"Covid19RD_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
             ROUND += 1
             return test_loss, {"test_acc": test_acc}
@@ -146,7 +201,7 @@ if __name__ == "__main__":
     BATCH_SIZE = args.batch_size
 
     # Define strategy
-    factory = RSNAStrategyFactory(args)
+    factory = Covid19RDStrategyFactory(args)
     strategy = factory.get_strategy()
 
     server_addr = socket.gethostname()

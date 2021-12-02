@@ -11,10 +11,13 @@ from sklearn.metrics import classification_report
 
 from fl_nih_dataset import NIHDataset
 from fl_rsna_dataset import RSNADataset
+from fl_covid_19_radiography_dataset import Covid19RDDataset
+
+import torchvision
 
 from fl_mnist_dataset import MNISTDataset
 from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_score, test_NIH, test_RSNA, \
-    get_test_transform_albu_NIH, parse_args, accuracy
+    get_test_transform_albu_NIH, parse_args, accuracy, get_train_transform_covid_19_rd, get_test_transform_covid_19_rd
 
 import timm
 import torch.nn.functional as F
@@ -168,6 +171,24 @@ def load_data_RSNA(client_id, clients_number):
     return train_loader, test_loader, classes_names
 
 
+def load_data_Covid19RD(client_id, clients_number):
+    train_transform = get_train_transform_covid_19_rd()
+    train_dataset = Covid19RDDataset(client_id, clients_number, args.train_subset, args.images,
+                                     transform=train_transform, debug=False, limit=args.limit)
+
+    test_transform = get_test_transform_covid_19_rd()
+    test_dataset = Covid19RDDataset(client_id, clients_number, args.test_subset, args.images,
+                                    transform=test_transform, debug=False, limit=args.limit)
+
+    classes_names = train_dataset.classes_names
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
+                                               num_workers=args.num_workers)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+                                              num_workers=args.num_workers)
+    return train_loader, test_loader, classes_names
+
+
 # #############################################################################
 # 2. Federation of the pipeline with Flower
 # #############################################################################
@@ -225,6 +246,43 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+
+    def get_parameters(self):
+        return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
+
+    def set_parameters(self, parameters):
+        logger.info("Loading parameters...")
+        state_dict = get_state_dict(self.model, parameters)
+        self.model.load_state_dict(state_dict, strict=True)
+        logger.info("Parameters loaded")
+
+    def fit(self, parameters, config):
+        self.set_parameters(parameters)
+        train_RSNA(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+                   epochs=args.local_epochs)
+        return self.get_parameters(), len(self.train_loader), {}
+
+    def evaluate(self, parameters, config):
+        self.set_parameters(parameters)
+        loss, accuracy, report = test_RSNA(self.model, self.test_loader, device, logger, self.criterion, self.optimizer,
+                                           self.classes_names)
+        logger.info(f"Loss: {loss}, accuracy: {accuracy}")
+        logger.info(report)
+        return float(loss), len(self.test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
+
+
+class ClassificationCovid19RDClient(fl.client.NumPyClient):
+    def __init__(self, client_id, clients_number):
+        # Load model
+        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=2)
+        self.model.cuda()
+
+        # Load data
+        self.train_loader, self.test_loader, self.classes_names = load_data_Covid19RD(client_id, clients_number)
+
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=3e-5)
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
