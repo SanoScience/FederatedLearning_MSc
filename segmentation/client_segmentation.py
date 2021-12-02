@@ -95,7 +95,7 @@ def load_data(client_id, clients_number):
 
     ids = np.array([i for i in range(len(dataset))])
     np.random.shuffle(ids)
-    train_ids, val_ids = train_test_split(ids)
+    train_ids, val_ids = train_test_split(ids, train_size=1.0)
     logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
     train_sampler = SubsetRandomSampler(train_ids)
     val_sampler = SubsetRandomSampler(val_ids)

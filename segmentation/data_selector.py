@@ -17,9 +17,7 @@ class DataSelector(ABC):
 class IIDSelector(DataSelector):
     def select_client_data(self, images, masks, client_id, number_of_clients):
         n = len(images)
-        # test_fraction = int(0.9 * n)
-        # todo: as long as client-side validation is not working we can skip this
-        test_fraction = int(n)
+        test_fraction = int(0.9 * n)
         client_images = images[:test_fraction]
         client_masks = masks[:test_fraction]
         sampled_images = [path for i, path in enumerate(client_images) if (i % number_of_clients) == client_id]
