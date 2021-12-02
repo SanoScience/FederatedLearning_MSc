@@ -52,7 +52,7 @@ def get_eval_fn(net):
         torch.save(net.state_dict(),
                    f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}_agg_{FED_AGGREGATION_STRATEGY}')
         loss.append(val_loss)
-        jacc.append(jacc)
+        jacc.append(val_jacc)
         if MAX_ROUND == ROUND:
             df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
             df.to_csv(
@@ -105,7 +105,6 @@ def run_server(le, a, c, r, mf, ff, bs):
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
         initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()]),
-        eta=0.25
     )
 
     # Start server
