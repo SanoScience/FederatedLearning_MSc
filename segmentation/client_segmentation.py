@@ -62,7 +62,6 @@ def train(net, train_loader, epochs):
             out = outputs_masks[0, 0, :]
             res = torch.cat((mask, out), 1).cpu().detach()
 
-            logger.info('    ', end='')
             logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
                         .format(batch_idx + 1, len(train_loader),
                                 loss.item(), jac.item(),
