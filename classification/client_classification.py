@@ -19,7 +19,6 @@ from fl_mnist_dataset import MNISTDataset
 from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_score, test_NIH, test_RSNA, \
     get_test_transform_albu_NIH, parse_args, accuracy, get_train_transform_covid_19_rd, get_test_transform_covid_19_rd
 
-import timm
 import torch.nn.functional as F
 
 hdlr = logging.StreamHandler()
@@ -158,10 +157,14 @@ def load_data_NIH(client_id, clients_number):
 
 
 def load_data_RSNA(client_id, clients_number):
-    train_dataset = RSNADataset(client_id, clients_number, args.train_subset, args.size, args.images,
-                                augmentation_level=10, is_training=True, debug=False, limit=args.limit)
-    test_dataset = RSNADataset(client_id, clients_number, args.test_subset, args.size, args.images,
-                               is_training=False, debug=False, limit=args.limit)
+    train_transform = get_train_transform_covid_19_rd(args)
+    train_dataset = RSNADataset(args, client_id, clients_number, args.train_subset, args.images,
+                                transform=train_transform, debug=False, limit=args.limit)
+
+    test_transform = get_test_transform_covid_19_rd(args)
+    test_dataset = RSNADataset(args, client_id, clients_number, args.test_subset, args.images,
+                               transform=test_transform, debug=False, limit=args.limit)
+
     classes_names = train_dataset.classes_names
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
@@ -236,16 +239,15 @@ class ClassificationNIHClient(fl.client.NumPyClient):
 class ClassificationRSNAClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number):
         # Load model
-        # EFFNET
-        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes,
-                                                  in_channels=args.in_channels)
+        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
 
         # Load data
         self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=3e-5)
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
@@ -318,7 +320,7 @@ def main():
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
     fl.client.start_numpy_client(f"{server_addr}:8081",
-                                 client=ClassificationCovid19RDClient(client_id, clients_number, args))
+                                 client=ClassificationRSNAClient(client_id, clients_number, args))
 
 
 if __name__ == "__main__":
