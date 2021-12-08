@@ -87,14 +87,15 @@ class NIHStrategyFactory:
 class RSNAStrategyFactory:
     def __init__(self, args):
         self.args = args
-        # EFFNET
-        self.model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=args.classes,
-                                                  in_channels=args.in_channels)
+        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
 
     def get_eval_fn(self, model, args, logger):
-        test_dataset = RSNADataset(-1, args.clients_number, args.test_subset, args.size, args.images,
-                                   is_training=False, debug=False, limit=args.limit)
+        test_transform = get_test_transform_covid_19_rd(args)
+        test_dataset = RSNADataset(args, -1, args.clients_number, args.test_subset, args.images,
+                                   transform=test_transform,
+                                   debug=False, limit=args.limit)
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                                   num_workers=args.num_workers)
@@ -102,7 +103,7 @@ class RSNAStrategyFactory:
         classes_names = test_dataset.classes_names
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=3e-5)
 
         def evaluate(weights):
             global ROUND
@@ -110,14 +111,14 @@ class RSNAStrategyFactory:
             model.load_state_dict(state_dict, strict=True)
             test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
                                                     classes_names)
-            torch.save(model.state_dict(), f'efficientnet_b4-{ROUND}')
+            torch.save(model.state_dict(), f'rsna_resnet_18-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
             reports.append(report)
 
             df = pd.DataFrame.from_dict(
                 {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
-            df.to_csv(f"rsna_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
+            df.to_csv(f"rsna_resnet_18_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
             ROUND += 1
             return test_loss, {"test_acc": test_acc}
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     BATCH_SIZE = args.batch_size
 
     # Define strategy
-    factory = Covid19RDStrategyFactory(args)
+    factory = RSNAStrategyFactory(args)
     strategy = factory.get_strategy()
 
     server_addr = socket.gethostname()
