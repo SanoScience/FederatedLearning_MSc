@@ -172,12 +172,12 @@ def load_data_RSNA(client_id, clients_number):
 
 
 def load_data_Covid19RD(client_id, clients_number):
-    train_transform = get_train_transform_covid_19_rd()
-    train_dataset = Covid19RDDataset(client_id, clients_number, args.train_subset, args.images,
+    train_transform = get_train_transform_covid_19_rd(args)
+    train_dataset = Covid19RDDataset(args, client_id, clients_number, args.train_subset, args.images,
                                      transform=train_transform, debug=False, limit=args.limit)
 
-    test_transform = get_test_transform_covid_19_rd()
-    test_dataset = Covid19RDDataset(client_id, clients_number, args.test_subset, args.images,
+    test_transform = get_test_transform_covid_19_rd(args)
+    test_dataset = Covid19RDDataset(args, client_id, clients_number, args.test_subset, args.images,
                                     transform=test_transform, debug=False, limit=args.limit)
 
     classes_names = train_dataset.classes_names
@@ -272,10 +272,10 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
 
 
 class ClassificationCovid19RDClient(fl.client.NumPyClient):
-    def __init__(self, client_id, clients_number):
+    def __init__(self, client_id, clients_number, args):
         # Load model
         self.model = torchvision.models.resnet18(pretrained=True)
-        self.model.fc = torch.nn.Linear(in_features=512, out_features=2)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
 
         # Load data
@@ -317,7 +317,8 @@ def main():
 
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationCovid19RDClient(client_id, clients_number))
+    fl.client.start_numpy_client(f"{server_addr}:8081",
+                                 client=ClassificationCovid19RDClient(client_id, clients_number, args))
 
 
 if __name__ == "__main__":

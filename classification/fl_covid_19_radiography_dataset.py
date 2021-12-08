@@ -1,34 +1,24 @@
-import glob
 import pandas as pd
-import torch
 import os
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from PIL import Image, ImageFile
-import numpy as np
-import cv2
+
 from data_selector import IIDSelector
-import pydicom
-import skimage.io
-import skimage.transform
-from skimage.transform import SimilarityTransform, AffineTransform
-import math
-from imgaug import augmenters as iaa
-from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from torchvision import transforms
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Covid19RDDataset(Dataset):
-    def __init__(self, client_id, clients_number, ids_labels_file, images_source, transform=None, debug=False,
+    def __init__(self, args, client_id, clients_number, ids_labels_file, images_source, transform=None, debug=False,
                  limit=-1):
         super(Covid19RDDataset, self).__init__()
 
+        self.args = args
         self.debug = debug
         self.transform = transform
 
-        # "Normal"=0, "COVID"=1
-        self.classes_names = ["Normal", "COVID"]
+        # "Normal"=0, "COVID"=1, "Lung_Opacity"=2, "Viral Pneumonia"=3
+        self.classes_names = ["Normal", "COVID", "Lung_Opacity", "Viral Pneumonia"]
 
         ids_labels_df = pd.read_csv(ids_labels_file)
 
@@ -57,7 +47,7 @@ class Covid19RDDataset(Dataset):
         return len(self.labels)
 
     def num_classes(self):
-        return 2
+        return self.args.classes
 
     def __getitem__(self, idx):
         image_path = self.images[idx]

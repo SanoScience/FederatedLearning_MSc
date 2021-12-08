@@ -139,12 +139,12 @@ class Covid19RDStrategyFactory:
     def __init__(self, args):
         self.args = args
         self.model = torchvision.models.resnet18(pretrained=True)
-        self.model.fc = torch.nn.Linear(in_features=512, out_features=2)
+        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
 
     def get_eval_fn(self, model, args, logger):
-        test_transform = get_test_transform_covid_19_rd()
-        test_dataset = Covid19RDDataset(-1, args.clients_number, args.test_subset, args.images,
+        test_transform = get_test_transform_covid_19_rd(args)
+        test_dataset = Covid19RDDataset(args, -1, args.clients_number, args.test_subset, args.images,
                                         transform=test_transform,
                                         debug=False, limit=args.limit)
 

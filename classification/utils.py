@@ -81,10 +81,10 @@ def get_test_transform_albu_NIH(height, width):
     ])
 
 
-def get_train_transform_covid_19_rd():
+def get_train_transform_covid_19_rd(args):
     return torchvision.transforms.Compose([
         # Converting images to the size that the model expects
-        torchvision.transforms.Resize(size=(224, 224)),
+        torchvision.transforms.Resize(size=(args.size, args.size)),
         torchvision.transforms.RandomHorizontalFlip(),  # A RandomHorizontalFlip to augment our data
         torchvision.transforms.ToTensor(),  # Converting to tensor
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -94,10 +94,10 @@ def get_train_transform_covid_19_rd():
     ])
 
 
-def get_test_transform_covid_19_rd():
+def get_test_transform_covid_19_rd(args):
     return torchvision.transforms.Compose([
         # Converting images to the size that the model expects
-        torchvision.transforms.Resize(size=(224, 224)),
+        torchvision.transforms.Resize(size=(args.size, args.size)),
         # We don't do data augmentation in the test/val set
         torchvision.transforms.ToTensor(),  # Converting to tensor
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -225,7 +225,7 @@ def parse_args():
                         help="Number of local epochs")
     parser.add_argument("--size",
                         type=int,
-                        default=224,
+                        default=512,
                         help="input image size")
     parser.add_argument("--num_workers",
                         type=int,
