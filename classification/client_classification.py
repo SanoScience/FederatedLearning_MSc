@@ -317,7 +317,7 @@ def main():
 
     # Start client
     logger.info("Connecting to:" + f"{server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationRSNAClient(client_id, clients_number))
+    fl.client.start_numpy_client(f"{server_addr}:8081", client=ClassificationCovid19RDClient(client_id, clients_number))
 
 
 if __name__ == "__main__":
