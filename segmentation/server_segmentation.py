@@ -62,7 +62,7 @@ def get_eval_fn(net):
         state_dict = get_state_dict(net, weights)
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
-        if val_jacc > max(jacc):
+        if len(jacc) != 0 and val_jacc > max(jacc):
             res_dir = 'unet_models'
             logger.info("Saving model as jaccard score is the best")
             if not os.path.exists(res_dir):
