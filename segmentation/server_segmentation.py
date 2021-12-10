@@ -22,9 +22,13 @@ FED_AGGREGATION_STRATEGY = 'FedAvg'
 LOCAL_EPOCHS = 1
 MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
+TIME_BUDGET = 60
+LEARNING_RATE = 0.0001
+DICE_ONLY=False
 
 strategies = {'FedAdam': fl.server.strategy.FedAdam,
               'FedAvg': fl.server.strategy.FedAvg,
+              'FedYogi': fl.server.strategy.FedYogi,
               'FedAdagrad': fl.server.strategy.FedAdagrad}
 
 
@@ -32,6 +36,9 @@ def fit_config(rnd: int):
     config = {
         "batch_size": BATCH_SIZE,
         "local_epochs": LOCAL_EPOCHS,
+        "learning_rate": LEARNING_RATE,
+        "dice_only": DICE_ONLY,
+        "time_budget": TIME_BUDGET  # in minutes
     }
     return config
 
@@ -50,13 +57,17 @@ def get_eval_fn(net):
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
         torch.save(net.state_dict(),
-                   f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}_agg_{FED_AGGREGATION_STRATEGY}')
+                   f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
+                   f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
+                   f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}')
+
         loss.append(val_loss)
         jacc.append(val_jacc)
         if MAX_ROUND == ROUND:
             df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
             df.to_csv(
-                f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}.csv")
+                f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}"
+                f"_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}.csv")
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 

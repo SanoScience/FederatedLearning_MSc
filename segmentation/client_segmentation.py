@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
 from segmentation.data_loader import LungSegDataset
-from segmentation.loss_functions import DiceLoss
+from segmentation.loss_functions import DiceLoss, DiceBCELoss
 from segmentation.models.unet import UNet
 
 IMAGE_SIZE = 512
@@ -29,13 +29,15 @@ if torch.cuda.is_available():
     logger.info(f"CUDA is available: {device_name}")
 
 
-def train(net, train_loader, epochs):
+def train(net, train_loader, epochs, lr, dice_only):
     """Train the network on the training set."""
-    criterion = DiceLoss()
+    if dice_only:
+        criterion = DiceLoss()
+    else:
+        criterion = DiceBCELoss()
     optimizer = torch.optim.Adam(net.parameters(),
-                                 lr=0.0001,
-                                 weight_decay=0.0001
-                                 )
+                                 lr=lr,
+                                 weight_decay=0.0001)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         logger.info('Starting epoch {}/{}'.format(epoch + 1, epochs))
@@ -49,8 +51,7 @@ def train(net, train_loader, epochs):
 
             optimizer.zero_grad()
             outputs_masks = net(images)
-            loss_seg = criterion(outputs_masks, masks)
-            loss = loss_seg
+            loss = criterion(outputs_masks, masks)
             loss.backward()
             optimizer.step()
 
@@ -58,9 +59,9 @@ def train(net, train_loader, epochs):
             running_jaccard += jac.item()
             running_loss += loss.item()
 
-            mask = masks[0, 0, :]
-            out = outputs_masks[0, 0, :]
-            res = torch.cat((mask, out), 1).cpu().detach()
+            # mask = masks[0, 0, :]
+            # out = outputs_masks[0, 0, :]
+            # res = torch.cat((mask, out), 1).cpu().detach()
 
             logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
                         .format(batch_idx + 1, len(train_loader),
@@ -141,7 +142,9 @@ def main():
             # todo: use if necessary :)
             # batch_size: int = config["batch_size"]
             epochs: int = config["local_epochs"]
-            train(net, train_loader, epochs=epochs)
+            lr: int = config["learning_rate"]
+            dice_only = config["dice_only"]
+            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):

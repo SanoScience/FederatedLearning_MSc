@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import torch
 
-from segmentation.loss_functions import DiceLoss
+from segmentation.loss_functions import DiceLoss, DiceBCELoss
 
 
 def get_data_paths():
@@ -22,7 +22,8 @@ def get_state_dict(net, parameters):
 
 
 def validate(net, val_loader, device):
-    criterion = DiceLoss()
+    criterion = DiceBCELoss()
+    # criterion = DiceLoss()
     net.eval()
     val_running_loss = 0.0
     val_running_jac = 0.0
