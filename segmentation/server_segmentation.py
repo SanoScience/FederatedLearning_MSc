@@ -5,7 +5,7 @@ import click
 import flwr as fl
 import pandas as pd
 from torch.utils.data import DataLoader
-
+import os
 from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
@@ -25,6 +25,12 @@ FRACTION_FIT = 0.75
 TIME_BUDGET = 60
 LEARNING_RATE = 0.0001
 DICE_ONLY=False
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+hdlr = logging.StreamHandler()
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 strategies = {'FedAdam': fl.server.strategy.FedAdam,
               'FedAvg': fl.server.strategy.FedAvg,
@@ -56,10 +62,15 @@ def get_eval_fn(net):
         state_dict = get_state_dict(net, weights)
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
-        torch.save(net.state_dict(),
-                   f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
-                   f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
-                   f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}')
+        if val_jacc > max(jacc):
+            res_dir = 'unet_models'
+            logger.info("Saving model as jaccard score is the best")
+            if not os.path.exists(res_dir):
+                os.mkdir(res_dir)
+            torch.save(net.state_dict(),
+                       f'{res_dir}/unet_models/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
+                       f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
+                       f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}')
 
         loss.append(val_loss)
         jacc.append(val_jacc)
@@ -92,12 +103,6 @@ def run_server(le, a, c, r, mf, ff, bs):
     MIN_FIT_CLIENTS = mf
     FRACTION_FIT = ff
     BATCH_SIZE = bs
-
-    # Initialize logger
-    logger = logging.getLogger(__name__)
-    hdlr = logging.StreamHandler()
-    logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
 
     logger.info("Parsing arguments")
 
