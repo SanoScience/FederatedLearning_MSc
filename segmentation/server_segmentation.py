@@ -24,7 +24,7 @@ MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
 TIME_BUDGET = 60
 LEARNING_RATE = 0.0001
-DICE_ONLY=False
+DICE_ONLY = False
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -94,6 +94,7 @@ def get_eval_fn(net):
 @click.option('--mf', default=MIN_FIT_CLIENTS, type=int, help='Min fit clients')
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
+@click.option('--lr', default=LEARNING_RATE, type=int, help='Learning rate')
 def run_server(le, a, c, r, mf, ff, bs):
     global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE
     LOCAL_EPOCHS = le
