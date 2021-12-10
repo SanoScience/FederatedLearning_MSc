@@ -70,7 +70,8 @@ def get_eval_fn(net):
             torch.save(net.state_dict(),
                        f'{res_dir}/unet_models/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
                        f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
-                       f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}')
+                       f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}'
+                       f'_do_{DICE_ONLY}_lr_{LEARNING_RATE}')
 
         loss.append(val_loss)
         jacc.append(val_jacc)
@@ -78,7 +79,8 @@ def get_eval_fn(net):
             df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
             df.to_csv(
                 f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}"
-                f"_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}.csv")
+                f"_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}"
+                f"_do_{DICE_ONLY}_lr_{LEARNING_RATE}.csv")
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
