@@ -68,7 +68,7 @@ def get_eval_fn(net):
             if not os.path.exists(res_dir):
                 os.mkdir(res_dir)
             torch.save(net.state_dict(),
-                       f'{res_dir}/unet_models/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
+                       f'{res_dir}/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
                        f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
                        f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}'
                        f'_do_{DICE_ONLY}_lr_{LEARNING_RATE}')
