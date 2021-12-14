@@ -10,6 +10,7 @@ from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
+import shutil
 
 loss = []
 jacc = []
@@ -49,6 +50,10 @@ def fit_config(rnd: int):
     return config
 
 
+def results_dirname_generator():
+    return f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
+
+
 def get_eval_fn(net):
     masks_path, images_path = get_data_paths()
     test_dataset = LungSegDataset(path_to_images=images_path,
@@ -62,25 +67,20 @@ def get_eval_fn(net):
         state_dict = get_state_dict(net, weights)
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
+        res_dir = results_dirname_generator()
         if len(jacc) != 0 and val_jacc > max(jacc):
-            res_dir = 'unet_models'
-            logger.info("Saving model as jaccard score is the best")
-            if not os.path.exists(res_dir):
-                os.mkdir(res_dir)
-            torch.save(net.state_dict(),
-                       f'{res_dir}/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}'
-                       f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}'
-                       f'_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}'
-                       f'_do_{DICE_ONLY}_lr_{LEARNING_RATE}')
+            unet_dir = os.path.join(res_dir, 'best_model')
+            if os.path.exists(unet_dir):
+                shutil.rmtree(shutil)
+            os.mkdir(unet_dir)
+            logger.info(f"Saving model as jaccard score is the best: {val_jacc}")
+            torch.save(net.state_dict(), f'{unet_dir}/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}')
 
         loss.append(val_loss)
         jacc.append(val_jacc)
         if MAX_ROUND == ROUND:
             df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
-            df.to_csv(
-                f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}"
-                f"_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}"
-                f"_do_{DICE_ONLY}_lr_{LEARNING_RATE}.csv")
+            df.to_csv(os.path.join(res_dir, 'result.csv'))
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
@@ -98,7 +98,7 @@ def get_eval_fn(net):
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
 def run_server(le, a, c, r, mf, ff, bs, lr):
-    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE
+    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
     CLIENTS = c
@@ -106,6 +106,7 @@ def run_server(le, a, c, r, mf, ff, bs, lr):
     MIN_FIT_CLIENTS = mf
     FRACTION_FIT = ff
     BATCH_SIZE = bs
+    LEARNING_RATE = lr
 
     logger.info("Parsing arguments")
 
@@ -129,6 +130,12 @@ def run_server(le, a, c, r, mf, ff, bs, lr):
     # Start server
     server_addr = socket.gethostname()
     logger.info(f"Starting server on {server_addr}")
+
+    res_dir = results_dirname_generator()
+    if os.path.exists(res_dir):
+        shutil.rmtree(res_dir)
+    os.mkdir(res_dir)
+
     fl.server.start_server(
         server_address=f"{server_addr}:8081",
         config={"num_rounds": MAX_ROUND},
