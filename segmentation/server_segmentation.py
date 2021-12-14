@@ -5,11 +5,12 @@ import click
 import flwr as fl
 import pandas as pd
 from torch.utils.data import DataLoader
-
+import os
 from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
+import shutil
 
 loss = []
 jacc = []
@@ -22,9 +23,19 @@ FED_AGGREGATION_STRATEGY = 'FedAvg'
 LOCAL_EPOCHS = 1
 MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
+TIME_BUDGET = 60
+LEARNING_RATE = 0.0001
+DICE_ONLY = False
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+hdlr = logging.StreamHandler()
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 strategies = {'FedAdam': fl.server.strategy.FedAdam,
               'FedAvg': fl.server.strategy.FedAvg,
+              'FedYogi': fl.server.strategy.FedYogi,
               'FedAdagrad': fl.server.strategy.FedAdagrad}
 
 
@@ -32,8 +43,15 @@ def fit_config(rnd: int):
     config = {
         "batch_size": BATCH_SIZE,
         "local_epochs": LOCAL_EPOCHS,
+        "learning_rate": LEARNING_RATE,
+        "dice_only": DICE_ONLY,
+        "time_budget": TIME_BUDGET  # in minutes
     }
     return config
+
+
+def results_dirname_generator():
+    return f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
 
 
 def get_eval_fn(net):
@@ -49,14 +67,20 @@ def get_eval_fn(net):
         state_dict = get_state_dict(net, weights)
         net.load_state_dict(state_dict, strict=True)
         val_loss, val_jacc = validate(net, test_loader, DEVICE)
-        torch.save(net.state_dict(),
-                   f'unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}_agg_{FED_AGGREGATION_STRATEGY}')
+        res_dir = results_dirname_generator()
+        if len(jacc) != 0 and val_jacc > max(jacc):
+            unet_dir = os.path.join(res_dir, 'best_model')
+            if os.path.exists(unet_dir):
+                shutil.rmtree(unet_dir)
+            os.mkdir(unet_dir)
+            logger.info(f"Saving model as jaccard score is the best: {val_jacc}")
+            torch.save(net.state_dict(), f'{unet_dir}/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}')
+
         loss.append(val_loss)
-        jacc.append(jacc)
+        jacc.append(val_jacc)
         if MAX_ROUND == ROUND:
             df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
-            df.to_csv(
-                f"r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}.csv")
+            df.to_csv(os.path.join(res_dir, 'result.csv'))
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
@@ -72,8 +96,9 @@ def get_eval_fn(net):
 @click.option('--mf', default=MIN_FIT_CLIENTS, type=int, help='Min fit clients')
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
-def run_server(le, a, c, r, mf, ff, bs):
-    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE
+@click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
+def run_server(le, a, c, r, mf, ff, bs, lr):
+    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
     CLIENTS = c
@@ -81,12 +106,7 @@ def run_server(le, a, c, r, mf, ff, bs):
     MIN_FIT_CLIENTS = mf
     FRACTION_FIT = ff
     BATCH_SIZE = bs
-
-    # Initialize logger
-    logger = logging.getLogger(__name__)
-    hdlr = logging.StreamHandler()
-    logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
+    LEARNING_RATE = lr
 
     logger.info("Parsing arguments")
 
@@ -105,12 +125,17 @@ def run_server(le, a, c, r, mf, ff, bs):
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
         initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()]),
-        eta=0.25
     )
 
     # Start server
     server_addr = socket.gethostname()
     logger.info(f"Starting server on {server_addr}")
+
+    res_dir = results_dirname_generator()
+    if os.path.exists(res_dir):
+        shutil.rmtree(res_dir)
+    os.mkdir(res_dir)
+
     fl.server.start_server(
         server_address=f"{server_addr}:8081",
         config={"num_rounds": MAX_ROUND},
