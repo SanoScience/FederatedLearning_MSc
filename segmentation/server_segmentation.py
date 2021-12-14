@@ -71,7 +71,7 @@ def get_eval_fn(net):
         if len(jacc) != 0 and val_jacc > max(jacc):
             unet_dir = os.path.join(res_dir, 'best_model')
             if os.path.exists(unet_dir):
-                shutil.rmtree(shutil)
+                shutil.rmtree(unet_dir)
             os.mkdir(unet_dir)
             logger.info(f"Saving model as jaccard score is the best: {val_jacc}")
             torch.save(net.state_dict(), f'{unet_dir}/unet_{ROUND}_jacc_{round(val_jacc, 3)}_loss_{round(val_loss, 3)}')
