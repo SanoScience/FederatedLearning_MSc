@@ -11,10 +11,15 @@ from fl_mnist_dataset import MNISTDataset
 from fl_nih_dataset import NIHDataset
 from fl_rsna_dataset import RSNADataset
 from fl_covid_19_radiography_dataset import Covid19RDDataset
-from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_RSNA, \
-    get_test_transform_covid_19_rd, get_train_transform_covid_19_rd
-import timm
+from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_single_label, \
+    get_test_transform_covid_19_rd, get_train_transform_covid_19_rd, get_test_patching_transform_covid_19_rd, \
+    test_single_label_patching
 import torchvision
+
+import sys
+
+sys.path.append("..")
+from segmentation.models.unet import UNet
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -85,17 +90,18 @@ class NIHStrategyFactory:
 
 
 class RSNAStrategyFactory:
-    def __init__(self, args):
+    def __init__(self, args, segmentation_model=None):
         self.args = args
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
+        self.segmentation_model = segmentation_model
 
     def get_eval_fn(self, model, args, logger):
         test_transform = get_test_transform_covid_19_rd(args)
         test_dataset = RSNADataset(args, -1, args.clients_number, args.test_subset, args.images,
-                                   transform=test_transform,
-                                   debug=False, limit=args.limit)
+                                   transform=test_transform, debug=False, limit=args.limit,
+                                   segmentation_model=self.segmentation_model)
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                                   num_workers=args.num_workers)
@@ -109,8 +115,12 @@ class RSNAStrategyFactory:
             global ROUND
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
-            test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
-                                                    classes_names)
+            if args.patches:
+                test_acc, test_loss, report = test_single_label_patching(model, DEVICE, logger, test_dataset, criterion,
+                                                                         optimizer, classes_names, args.k_patches)
+            else:
+                test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
+                                                                optimizer, classes_names)
             torch.save(model.state_dict(), f'rsna_resnet_18-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
@@ -137,17 +147,18 @@ class RSNAStrategyFactory:
 
 
 class Covid19RDStrategyFactory:
-    def __init__(self, args):
+    def __init__(self, args, segmentation_model=None):
         self.args = args
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
+        self.segmentation_model = segmentation_model
 
     def get_eval_fn(self, model, args, logger):
         test_transform = get_test_transform_covid_19_rd(args)
         test_dataset = Covid19RDDataset(args, -1, args.clients_number, args.test_subset, args.images,
-                                        transform=test_transform,
-                                        debug=False, limit=args.limit)
+                                        transform=test_transform, debug=False, limit=args.limit,
+                                        segmentation_model=self.segmentation_model)
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
                                                   num_workers=args.num_workers)
@@ -161,8 +172,12 @@ class Covid19RDStrategyFactory:
             global ROUND
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
-            test_acc, test_loss, report = test_RSNA(model, DEVICE, logger, test_loader, criterion, optimizer,
-                                                    classes_names)
+            if args.patches:
+                test_acc, test_loss, report = test_single_label_patching(model, DEVICE, logger, test_dataset, criterion,
+                                                                         optimizer, classes_names, args.k_patches)
+            else:
+                test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
+                                                                optimizer, classes_names)
             torch.save(model.state_dict(), f'resnet_18-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
@@ -201,8 +216,13 @@ if __name__ == "__main__":
     LOCAL_EPOCHS = args.local_epochs
     BATCH_SIZE = args.batch_size
 
+    segmentation_model = UNet(input_channels=1,
+                              output_channels=64,
+                              n_classes=1).to(DEVICE)
+    segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
+
     # Define strategy
-    factory = RSNAStrategyFactory(args)
+    factory = RSNAStrategyFactory(args, segmentation_model)
     strategy = factory.get_strategy()
 
     server_addr = socket.gethostname()

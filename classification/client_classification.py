@@ -16,10 +16,16 @@ from fl_covid_19_radiography_dataset import Covid19RDDataset
 import torchvision
 
 from fl_mnist_dataset import MNISTDataset
-from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_score, test_NIH, test_RSNA, \
-    get_test_transform_albu_NIH, parse_args, accuracy, get_train_transform_covid_19_rd, get_test_transform_covid_19_rd
+from utils import get_state_dict, get_train_transformation_albu_NIH, accuracy_score, test_NIH, test_single_label, \
+    get_test_transform_albu_NIH, parse_args, accuracy, get_train_transform_covid_19_rd, \
+    get_test_transform_covid_19_rd, get_train_patching_transform_covid_19_rd, get_test_patching_transform_covid_19_rd
 
 import torch.nn.functional as F
+
+import sys
+
+sys.path.append("..")
+from segmentation.models.unet import UNet
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -83,41 +89,43 @@ def train_NIH(model, train_loader, criterion, optimizer, classes_names, epochs=1
                     f" Training Acc: {train_acc:.4f}")
 
 
-def train_RSNA(model, train_loader, criterion, optimizer, classes_names, epochs=1):
+def train_single_label(model, train_loader, criterion, optimizer, classes_names, epochs=1, K=1):
     for epoch in range(epochs):
         start_time_epoch = time.time()
-        logger.info(f"Starting epoch {epoch + 1}")
+        logger.info(f"Starting epoch {epoch + 1} / {epochs}")
         model.train()
         running_loss = 0.0
         running_accuracy = 0.0
         preds = []
         labels = []
 
-        for batch_idx, (images, batch_labels) in enumerate(train_loader):
-            images = images.to(device=device, dtype=torch.float32)
-            batch_labels = batch_labels.to(device=device)
+        for i in range(K):
+            logger.info(f"Starting repetition {i + 1} / {K} ")
+            for batch_idx, (images, batch_labels) in enumerate(train_loader):
+                images = images.to(device=device, dtype=torch.float32)
+                batch_labels = batch_labels.to(device=device)
 
-            logits = model(images)
-            loss = criterion(logits, batch_labels)
+                logits = model(images)
+                loss = criterion(logits, batch_labels)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            running_loss += loss.item()
-            running_accuracy += accuracy(logits, batch_labels)
+                running_loss += loss.item()
+                running_accuracy += accuracy(logits, batch_labels)
 
-            y_pred = F.softmax(logits, dim=1)
-            top_p, top_class = y_pred.topk(1, dim=1)
+                y_pred = F.softmax(logits, dim=1)
+                top_p, top_class = y_pred.topk(1, dim=1)
 
-            labels.append(batch_labels.view(*top_class.shape))
-            preds.append(top_class)
+                labels.append(batch_labels.view(*top_class.shape))
+                preds.append(top_class)
 
-            if batch_idx % 10 == 0:
-                logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                            f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
-                            f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
-                            f" Time: {time.time() - start_time_epoch:2f}")
+                if batch_idx % 10 == 0:
+                    logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                                f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
+                                f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
+                                f" Time: {time.time() - start_time_epoch:2f}")
 
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
@@ -157,13 +165,22 @@ def load_data_NIH(client_id, clients_number):
 
 
 def load_data_RSNA(client_id, clients_number):
+    segmentation_model = None
+    if args.patches:
+        segmentation_model = UNet(input_channels=1,
+                                  output_channels=64,
+                                  n_classes=1).to(device)
+        segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
+
     train_transform = get_train_transform_covid_19_rd(args)
     train_dataset = RSNADataset(args, client_id, clients_number, args.train_subset, args.images,
-                                transform=train_transform, debug=False, limit=args.limit)
+                                transform=train_transform, debug=False, limit=args.limit,
+                                segmentation_model=segmentation_model)
 
     test_transform = get_test_transform_covid_19_rd(args)
     test_dataset = RSNADataset(args, client_id, clients_number, args.test_subset, args.images,
-                               transform=test_transform, debug=False, limit=args.limit)
+                               transform=test_transform, debug=False, limit=args.limit,
+                               segmentation_model=segmentation_model)
 
     classes_names = train_dataset.classes_names
 
@@ -175,13 +192,22 @@ def load_data_RSNA(client_id, clients_number):
 
 
 def load_data_Covid19RD(client_id, clients_number):
+    segmentation_model = None
+    if args.patches:
+        segmentation_model = UNet(input_channels=1,
+                                  output_channels=64,
+                                  n_classes=1).to(device)
+        segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
+
     train_transform = get_train_transform_covid_19_rd(args)
     train_dataset = Covid19RDDataset(args, client_id, clients_number, args.train_subset, args.images,
-                                     transform=train_transform, debug=False, limit=args.limit)
+                                     transform=train_transform, debug=False, limit=args.limit,
+                                     segmentation_model=segmentation_model)
 
     test_transform = get_test_transform_covid_19_rd(args)
     test_dataset = Covid19RDDataset(args, client_id, clients_number, args.test_subset, args.images,
-                                    transform=test_transform, debug=False, limit=args.limit)
+                                    transform=test_transform, debug=False, limit=args.limit,
+                                    segmentation_model=segmentation_model)
 
     classes_names = train_dataset.classes_names
 
@@ -260,14 +286,16 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        train_RSNA(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
-                   epochs=args.local_epochs)
+        train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+                           epochs=args.local_epochs)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):
+        # TODO this is not reported at the moment
         self.set_parameters(parameters)
-        loss, accuracy, report = test_RSNA(self.model, self.test_loader, device, logger, self.criterion, self.optimizer,
-                                           self.classes_names)
+        loss, accuracy, report = test_single_label(self.model, self.test_loader, device, logger, self.criterion,
+                                                   self.optimizer,
+                                                   self.classes_names)
         logger.info(f"Loss: {loss}, accuracy: {accuracy}")
         logger.info(report)
         return float(loss), len(self.test_loader), {"accuracy": float(accuracy), "loss": float(loss)}
@@ -297,14 +325,16 @@ class ClassificationCovid19RDClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        train_RSNA(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
-                   epochs=args.local_epochs)
+        train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+                           epochs=args.local_epochs, K=args.k_patches)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):
+        # TODO this is not reported at the moment
         self.set_parameters(parameters)
-        loss, accuracy, report = test_RSNA(self.model, self.test_loader, device, logger, self.criterion, self.optimizer,
-                                           self.classes_names)
+        loss, accuracy, report = test_single_label(self.model, self.test_loader, device, logger, self.criterion,
+                                                   self.optimizer,
+                                                   self.classes_names)
         logger.info(f"Loss: {loss}, accuracy: {accuracy}")
         logger.info(report)
         return float(loss), len(self.test_loader), {"accuracy": float(accuracy), "loss": float(loss)}

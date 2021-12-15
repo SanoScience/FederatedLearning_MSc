@@ -4,6 +4,7 @@ import os
 from torch.utils.data import Dataset
 from PIL import Image, ImageFile
 
+from utils import make_patch
 from data_selector import IIDSelector
 import pydicom
 
@@ -12,12 +13,13 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class RSNADataset(Dataset):
     def __init__(self, args, client_id, clients_number, ids_labels_file, images_source, transform=None, debug=False,
-                 limit=-1):
+                 limit=-1, segmentation_model=None):
         super(RSNADataset, self).__init__()
 
         self.args = args
         self.debug = debug
         self.transform = transform
+        self.segmentation_model = segmentation_model
 
         # "Normal"=0, "No Lung Opacity / Not Normal"=1, "Lung Opacity"=2
         self.classes_names = ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
@@ -65,4 +67,6 @@ class RSNADataset(Dataset):
         im_array = self.get_image(image_path)
 
         image_rgb = Image.fromarray(im_array).convert('RGB')
+        if self.segmentation_model:
+            image_rgb = make_patch(self.args, self.segmentation_model, image_rgb)
         return self.transform(image_rgb), self.labels[idx]
