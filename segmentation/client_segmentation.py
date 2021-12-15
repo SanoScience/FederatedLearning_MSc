@@ -14,7 +14,7 @@ from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
 from segmentation.models.unet import UNet
 
-IMAGE_SIZE = 512
+IMAGE_SIZE = 1024
 BATCH_SIZE = 2
 
 hdlr = logging.StreamHandler()

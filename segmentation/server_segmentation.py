@@ -51,7 +51,7 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
+    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}_1024x1024'
 
 
 def get_eval_fn(net):
