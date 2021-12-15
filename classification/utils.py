@@ -125,11 +125,13 @@ def make_patch(args, segmentation_model, image, idx):
     outputs_mask = segmentation_model(image)
    
     image = image[0, 0, :]
-    img_np = image.cpu().detach().numpy()
+    img_np = image.cpu().numpy()
     Image.fromarray(img_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/img_np_{idx}.png', 'PNG')
+    print(image)
+    print(img_np)
 
     out = outputs_mask[0, 0, :]
-    out_np = out.cpu().detach().numpy()
+    out_np = out.cpu().numpy()
     Image.fromarray(out_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/mask_np_{idx}.png', 'PNG')
 
     superposed = np.copy(img_np)
