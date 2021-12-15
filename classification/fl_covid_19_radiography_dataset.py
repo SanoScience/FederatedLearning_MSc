@@ -4,18 +4,20 @@ from torch.utils.data import Dataset
 from PIL import Image, ImageFile
 
 from data_selector import IIDSelector
+from utils import make_patch
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Covid19RDDataset(Dataset):
     def __init__(self, args, client_id, clients_number, ids_labels_file, images_source, transform=None, debug=False,
-                 limit=-1):
+                 limit=-1, segmentation_model=None):
         super(Covid19RDDataset, self).__init__()
 
         self.args = args
         self.debug = debug
         self.transform = transform
+        self.segmentation_model = segmentation_model
 
         # "Normal"=0, "COVID"=1, "Lung_Opacity"=2, "Viral Pneumonia"=3
         self.classes_names = ["Normal", "COVID", "Lung_Opacity", "Viral Pneumonia"]
@@ -52,4 +54,6 @@ class Covid19RDDataset(Dataset):
     def __getitem__(self, idx):
         image_path = self.images[idx]
         image = Image.open(image_path).convert('RGB')
+        if self.segmentation_model:
+            image = make_patch(self.args, self.segmentation_model, image)
         return self.transform(image), self.labels[idx]

@@ -1,14 +1,19 @@
 import os
 import torch
 from collections import OrderedDict
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, accuracy_score
 import albumentations as albu
 from albumentations.pytorch import ToTensorV2
 import torch.nn.functional as F
-from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+import torchvision.transforms.functional as F_vision
+from PIL import Image
+
 import numpy as np
+
+from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import torchvision
 import argparse
+from collections import defaultdict, Counter
 
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
@@ -16,7 +21,7 @@ COVID19_DATASET_PATH_BASE = os.path.expandvars(
     "$SCRATCH/fl_msc/classification/COVID-19_Radiography_Dataset/")
 
 
-def accuracy_score(pred, actual):
+def accuracy_score_batch(pred, actual):
     act_labels = actual == 1
     same = act_labels == pred
     correct = same.sum().item()
@@ -107,6 +112,43 @@ def get_test_transform_covid_19_rd(args):
     ])
 
 
+def make_patch(args, segmentation_model, image):
+    image = image.convert("L")
+    resize_transform = torchvision.transforms.Resize(size=(args.segmentation_size, args.segmentation_size))
+    image = resize_transform(image)
+    image = F_vision.to_tensor(image)
+
+    outputs_mask = segmentation_model(image)
+
+    img_np = image.numpy()
+    out = outputs_mask
+    out_np = out.detach().numpy()
+    superposed = np.copy(img_np)
+    superposed[out_np < 0.05] = 0
+    return generate_patch(superposed, args.size)
+
+
+def trim_ranges(l, r, bound):
+    if l < 0:
+        r += abs(l)
+        l = 0
+    if r >= bound:
+        l -= (bound - r)
+        r = bound - 1
+    return l, r
+
+
+def generate_patch(masked_image, patch_size=224):
+    w, h = masked_image.shape
+    shift = patch_size // 2
+
+    x, y = np.where(masked_image > 0.5)
+    i = np.random.randint(len(x))
+    l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
+    l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
+    return Image.fromarray(masked_image[l_x:r_x, l_y:r_y]).convert('RGB')
+
+
 def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
@@ -123,7 +165,7 @@ def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler
             output = torch.sigmoid(output)
             loss = criterion(output, label)
             pred = (output.data > 0.5).type(torch.float32)
-            acc = accuracy_score(pred, label)
+            acc = accuracy_score_batch(pred, label)
 
             test_preds.append(pred)
             test_labels.append(label)
@@ -152,7 +194,7 @@ def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler
     return test_acc, test_loss, report
 
 
-def test_RSNA(model, device, logger, test_loader, criterion, optimizer, classes_names):
+def test_single_label(model, device, logger, test_loader, criterion, optimizer, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
     test_preds = []
@@ -196,6 +238,64 @@ def test_RSNA(model, device, logger, test_loader, criterion, optimizer, classes_
     return test_acc, test_loss, report
 
 
+def test_single_label_patching(model, device, logger, test_patching_dataset, criterion, optimizer, classes_names, K):
+    test_running_loss = 0.0
+    test_running_accuracy = 0.0
+    test_preds = []
+    test_labels = []
+
+    model.eval()
+    logger.info("Testing: ")
+    test_patching_loader = torch.utils.data.DataLoader(test_patching_dataset, batch_size=1, num_workers=0)
+    test_preds_per_idx = defaultdict(list)
+    test_labels_per_idx = dict()
+
+    with torch.no_grad():
+        for i in range(K):
+            logger.info(f"repetition: {i}")
+            for image_idx, (image, batch_label) in enumerate(test_patching_loader):
+                image = image.to(device=device, dtype=torch.float32)
+                batch_label = batch_label.to(device=device)
+
+                logits = model(image)
+                loss = criterion(logits, batch_label)
+
+                test_running_loss += loss.item()
+                test_running_accuracy += accuracy(logits, batch_label)
+
+                y_pred = F.softmax(logits, dim=1)
+                _, top_class = y_pred.topk(1, dim=1)
+
+                test_labels_per_idx[image_idx] = batch_label.tolist()[0]
+                test_preds_per_idx[image_idx].append(top_class.tolist()[0])
+
+                test_labels.append(batch_label.view(*top_class.shape))
+                test_preds.append(top_class)
+
+                if image_idx % 500 == 0:
+                    logger.info(f"repetition: {i} image_idx: {image_idx}, ")
+
+    test_loss = test_running_loss / (len(test_patching_loader) * K)
+    test_patches_acc = test_running_accuracy / (len(test_patching_loader) * K)
+
+    for param_group in optimizer.param_groups:
+        logger.info(f"Current lr: {param_group['lr']}")
+
+    logger.info(f" Test Patches Loss: {test_loss:.4f}"
+                f" Test Patches Acc: {test_patches_acc:.4f}")
+
+    test_labels = [test_labels_per_idx[i] for i in range(len(test_patching_loader))]
+    test_preds = [Counter(test_preds_per_idx[i]).most_common(n=1)[0][0] for i in range(len(test_patching_loader))]
+
+    test_acc = accuracy_score(test_preds, test_labels)
+
+    logger.info("Test report (with majority voting):")
+    report_majority_voting = classification_report(test_labels, test_preds, target_names=classes_names)
+    logger.info(report_majority_voting)
+
+    return test_acc, test_loss, report_majority_voting
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Train classifier to detect covid on CXR images.")
 
@@ -215,6 +315,18 @@ def parse_args():
                         type=str,
                         default=os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
                         help="Path to the file with test dataset files list")
+    parser.add_argument("--segmentation_model",
+                        type=str,
+                        default="/net/archive/groups/plggsano/fl_msc/unet_model",
+                        help="Path to the file with segmentation model")
+    parser.add_argument("--patches",
+                        type=bool,
+                        default=True,
+                        help="whether to train model utilizing patching approach")
+    parser.add_argument("--k_patches",
+                        type=int,
+                        default=10,
+                        help="number of patches generated for an image")
     parser.add_argument("--in_channels",
                         type=int,
                         default=3,
@@ -223,10 +335,14 @@ def parse_args():
                         type=int,
                         default=3,
                         help="Number of local epochs")
-    parser.add_argument("--size",
+    parser.add_argument("--segmentation_size",
                         type=int,
                         default=512,
-                        help="input image size")
+                        help="input image size in segmentation model")
+    parser.add_argument("--size",
+                        type=int,
+                        default=224,
+                        help="input image size in classification model")
     parser.add_argument("--num_workers",
                         type=int,
                         default=0,
