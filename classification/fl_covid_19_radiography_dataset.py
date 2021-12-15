@@ -55,5 +55,5 @@ class Covid19RDDataset(Dataset):
         image_path = self.images[idx]
         image = Image.open(image_path).convert('RGB')
         if self.segmentation_model:
-            image = make_patch(self.args, self.segmentation_model, image)
+            image = make_patch(self.args, self.segmentation_model, image, idx)
         return self.transform(image), self.labels[idx]

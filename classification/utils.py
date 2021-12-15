@@ -112,8 +112,9 @@ def get_test_transform_covid_19_rd(args):
     ])
 
 
-def make_patch(args, segmentation_model, image):
+def make_patch(args, segmentation_model, image, idx):
     image = image.convert("L")
+    image.save(f'/net/scratch/people/plgfilipsl/tmp_patches/L_{idx}.png', 'PNG')
     resize_transform = torchvision.transforms.Resize(size=(args.segmentation_size, args.segmentation_size))
     image = resize_transform(image)
     image = F_vision.to_tensor(image)
@@ -125,8 +126,12 @@ def make_patch(args, segmentation_model, image):
    
     image = image[0, 0, :]
     img_np = image.cpu().detach().numpy()
+    Image.fromarray(img_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/img_np_{idx}.png', 'PNG')
+
     out = outputs_mask[0, 0, :]
     out_np = out.cpu().detach().numpy()
+    Image.fromarray(out_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/mask_np_{idx}.png', 'PNG')
+
     superposed = np.copy(img_np)
     superposed[out_np < 0.05] = 0
     return generate_patch(superposed, args.size)
