@@ -15,7 +15,7 @@ import shutil
 loss = []
 jacc = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 ROUND = 0
 MAX_ROUND = 5
 CLIENTS = 3

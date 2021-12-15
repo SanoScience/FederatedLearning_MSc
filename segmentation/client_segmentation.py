@@ -14,8 +14,8 @@ from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
 from segmentation.models.unet import UNet
 
-IMAGE_SIZE = 512
-BATCH_SIZE = 2
+IMAGE_SIZE = 1024
+BATCH_SIZE = 1
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -101,8 +101,8 @@ def load_data(client_id, clients_number):
     # val_sampler = SubsetRandomSampler(val_ids)
 
     train_loader = DataLoader(train_dataset,
-                              batch_size=BATCH_SIZE,)
-                              # sampler=train_sampler)
+                              batch_size=BATCH_SIZE, )
+    # sampler=train_sampler)
 
     # val_loader = DataLoader(validation_dataset,
     #                         batch_size=BATCH_SIZE,
@@ -144,6 +144,7 @@ def main():
             epochs: int = config["local_epochs"]
             lr: int = config["learning_rate"]
             dice_only = config["dice_only"]
+
             train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only)
             return self.get_parameters(), len(train_loader), {}
 
