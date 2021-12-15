@@ -68,7 +68,7 @@ class RSNADataset(Dataset):
 
         image_rgb = Image.fromarray(im_array).convert('RGB')
         if self.segmentation_model:
-            image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
+            # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
             image_rgb = make_patch(self.args, self.segmentation_model, image_rgb, idx)
-            image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
+            # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
         return self.transform(image_rgb), self.labels[idx]

@@ -114,25 +114,24 @@ def get_test_transform_covid_19_rd(args):
 
 def make_patch(args, segmentation_model, image, idx):
     image = image.convert("L")
-    image.save(f'/net/scratch/people/plgfilipsl/tmp_patches/L_{idx}.png', 'PNG')
+    # image.save(f'/net/scratch/people/plgfilipsl/tmp_patches/L_{idx}.png', 'PNG')
     resize_transform = torchvision.transforms.Resize(size=(args.segmentation_size, args.segmentation_size))
     image = resize_transform(image)
     image = F_vision.to_tensor(image)
     image = image[None, ...]
     image = image.cuda()
     segmentation_model.eval()
-
-    outputs_mask = segmentation_model(image)
+    
+    with torch.no_grad():
+        outputs_mask = segmentation_model(image)
    
     image = image[0, 0, :]
     img_np = image.cpu().numpy()
-    Image.fromarray(img_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/img_np_{idx}.png', 'PNG')
-    print(image)
-    print(img_np)
+    # Image.fromarray(img_np.astype(np.uint8), mode='L').convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/img_np_{idx}.png', 'PNG')
 
     out = outputs_mask[0, 0, :]
     out_np = out.cpu().numpy()
-    Image.fromarray(out_np).convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/mask_np_{idx}.png', 'PNG')
+    # Image.fromarray(out_np.astype(np.uint8), mode='L').convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/mask_np_{idx}.png', 'PNG')
 
     superposed = np.copy(img_np)
     superposed[out_np < 0.05] = 0
@@ -157,7 +156,7 @@ def generate_patch(masked_image, patch_size=224):
     i = np.random.randint(len(x))
     l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
     l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
-    return Image.fromarray(masked_image[l_x:r_x, l_y:r_y]).convert('RGB')
+    return Image.fromarray((255 * masked_image[l_x:r_x, l_y:r_y]).astype(np.uint8), mode='L').convert('RGB')
 
 
 def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
@@ -283,7 +282,7 @@ def test_single_label_patching(model, device, logger, test_patching_dataset, cri
                 test_labels.append(batch_label.view(*top_class.shape))
                 test_preds.append(top_class)
 
-                if image_idx % 500 == 0:
+                if image_idx % 100 == 0:
                     logger.info(f"repetition: {i} image_idx: {image_idx}, ")
 
     test_loss = test_running_loss / (len(test_patching_loader) * K)
