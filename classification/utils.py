@@ -15,8 +15,12 @@ import torchvision
 import argparse
 from collections import defaultdict, Counter
 
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/data/")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
+# RSNA_DATASET_PATH_BASE = os.path.expandvars("/Users/filip/Data/Studies/MastersThesis/Datasets/RSNA-pneumonia-detection-challenge/kaggle")
+
 COVID19_DATASET_PATH_BASE = os.path.expandvars(
     "$SCRATCH/fl_msc/classification/COVID-19_Radiography_Dataset/")
 
@@ -112,30 +116,33 @@ def get_test_transform_covid_19_rd(args):
     ])
 
 
-def make_patch(args, segmentation_model, image, idx):
+def make_patch(args, segmentation_model, image, patient_id):
     image = image.convert("L")
+    # image.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/L_{idx}.png', 'PNG')
     # image.save(f'/net/scratch/people/plgfilipsl/tmp_patches/L_{idx}.png', 'PNG')
     resize_transform = torchvision.transforms.Resize(size=(args.segmentation_size, args.segmentation_size))
     image = resize_transform(image)
     image = F_vision.to_tensor(image)
     image = image[None, ...]
-    image = image.cuda()
+    image = image.to(DEVICE)
     segmentation_model.eval()
-    
+
     with torch.no_grad():
         outputs_mask = segmentation_model(image)
-   
+
     image = image[0, 0, :]
     img_np = image.cpu().numpy()
+    # Image.fromarray((img_np).astype(np.int8), mode='L').convert('RGB').save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/img_np_{idx}.png', 'PNG')
     # Image.fromarray(img_np.astype(np.uint8), mode='L').convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/img_np_{idx}.png', 'PNG')
 
     out = outputs_mask[0, 0, :]
     out_np = out.cpu().numpy()
+    # Image.fromarray((out_np*255).astype(np.int8)).convert('RGB').save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/mask_np_{idx}.png', 'PNG')
     # Image.fromarray(out_np.astype(np.uint8), mode='L').convert('RGB').save(f'/net/scratch/people/plgfilipsl/tmp_patches/mask_np_{idx}.png', 'PNG')
 
     superposed = np.copy(img_np)
     superposed[out_np < 0.05] = 0
-    return generate_patch(superposed, args.size)
+    return generate_patch(superposed, patient_id, args.size)
 
 
 def trim_ranges(l, r, bound):
@@ -148,7 +155,9 @@ def trim_ranges(l, r, bound):
     return l, r
 
 
-def generate_patch(masked_image, patch_size=224):
+def generate_patch(masked_image, patient_id, patch_size=224):
+    Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
+        os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/", f"{patient_id}.png"), 'PNG')
     w, h = masked_image.shape
     shift = patch_size // 2
 
@@ -156,7 +165,7 @@ def generate_patch(masked_image, patch_size=224):
     i = np.random.randint(len(x))
     l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
     l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
-    return Image.fromarray((255 * masked_image[l_x:r_x, l_y:r_y]).astype(np.uint8), mode='L').convert('RGB')
+    return Image.fromarray((255 * masked_image[l_x:r_x, l_y:r_y]).astype(np.int8), mode='L').convert('RGB')
 
 
 def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
@@ -328,6 +337,7 @@ def parse_args():
     parser.add_argument("--segmentation_model",
                         type=str,
                         default="/net/archive/groups/plggsano/fl_msc/unet_model",
+                        # default="/Users/filip/Data/Studies/MastersThesis/unet_model",
                         help="Path to the file with segmentation model")
     parser.add_argument("--patches",
                         type=bool,

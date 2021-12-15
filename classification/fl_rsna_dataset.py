@@ -24,19 +24,20 @@ class RSNADataset(Dataset):
         # "Normal"=0, "No Lung Opacity / Not Normal"=1, "Lung Opacity"=2
         self.classes_names = ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
 
-        ids_labels_df = pd.read_csv(ids_labels_file)
+        self.ids_labels_df = pd.read_csv(ids_labels_file)
 
         if self.debug:
-            samples = ids_labels_df.head(32)
+            samples = self.ids_labels_df.head(32)
             print("Debug mode, samples: ", samples)
 
         # IMAGES
-        self.images = [os.path.join(images_source, row['patient_id']) + '.dcm' for _, row in ids_labels_df.iterrows()]
+        self.images = [os.path.join(images_source, row['patient_id']) + '.dcm' for _, row in
+                       self.ids_labels_df.iterrows()]
         images_count = len(self.images)
         print(f'Dataset file:{ids_labels_file}, len = {images_count}')
 
         # LABELS
-        self.labels = [row['label'] for _, row in ids_labels_df.iterrows()]
+        self.labels = [row['label'] for _, row in self.ids_labels_df.iterrows()]
 
         if limit != -1:
             self.images = self.images[0:limit]
@@ -69,6 +70,9 @@ class RSNADataset(Dataset):
         image_rgb = Image.fromarray(im_array).convert('RGB')
         if self.segmentation_model:
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
-            image_rgb = make_patch(self.args, self.segmentation_model, image_rgb, idx)
+            # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/original_{idx}.png', 'PNG')
+            image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,
+                                   self.ids_labels_df.iloc[idx]['patient_id'])
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
+            # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/{idx}.png', 'PNG')
         return self.transform(image_rgb), self.labels[idx]

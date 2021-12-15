@@ -93,7 +93,7 @@ class RSNAStrategyFactory:
         self.args = args
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
-        self.model.cuda()
+        self.model = self.model.to(DEVICE)
         self.segmentation_model = segmentation_model
 
     def get_eval_fn(self, model, args, logger):
