@@ -15,7 +15,7 @@ import shutil
 loss = []
 jacc = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 ROUND = 0
 MAX_ROUND = 5
 CLIENTS = 3
@@ -51,7 +51,7 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}_res_1024x1024'
+    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
 
 
 def get_eval_fn(net):
