@@ -15,7 +15,7 @@ from segmentation.loss_functions import DiceLoss, DiceBCELoss
 from segmentation.models.unet import UNet
 
 IMAGE_SIZE = 1024
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
