@@ -117,12 +117,16 @@ def make_patch(args, segmentation_model, image):
     resize_transform = torchvision.transforms.Resize(size=(args.segmentation_size, args.segmentation_size))
     image = resize_transform(image)
     image = F_vision.to_tensor(image)
+    image = image[None, ...]
+    image = image.cuda()
+    segmentation_model.eval()
 
     outputs_mask = segmentation_model(image)
-
-    img_np = image.numpy()
-    out = outputs_mask
-    out_np = out.detach().numpy()
+   
+    image = image[0, 0, :]
+    img_np = image.cpu().detach().numpy()
+    out = outputs_mask[0, 0, :]
+    out_np = out.cpu().detach().numpy()
     superposed = np.copy(img_np)
     superposed[out_np < 0.05] = 0
     return generate_patch(superposed, args.size)
