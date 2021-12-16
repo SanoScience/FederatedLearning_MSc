@@ -40,8 +40,8 @@ class RSNADataset(Dataset):
         self.labels = [row['label'] for _, row in self.ids_labels_df.iterrows()]
 
         if limit != -1:
-            self.images = self.images[0:limit]
-            self.labels = self.labels[0:limit]
+            self.images = self.images[:limit]
+            self.labels = self.labels[:limit]
 
         selector = IIDSelector()
         if client_id != -1:

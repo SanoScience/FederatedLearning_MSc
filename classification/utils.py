@@ -162,6 +162,9 @@ def generate_patch(masked_image, patient_id, patch_size=224):
     shift = patch_size // 2
 
     x, y = np.where(masked_image > 0.5)
+    if len(x) == 0:
+        x = [112]
+        y = [112]
     i = np.random.randint(len(x))
     l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
     l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
@@ -332,7 +335,7 @@ def parse_args():
                         help="Path to the file with training/validation dataset files list")
     parser.add_argument("--test_subset",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
                         help="Path to the file with test dataset files list")
     parser.add_argument("--segmentation_model",
                         type=str,
@@ -345,7 +348,7 @@ def parse_args():
                         help="whether to train model utilizing patching approach")
     parser.add_argument("--k_patches",
                         type=int,
-                        default=10,
+                        default=1,
                         help="number of patches generated for an image")
     parser.add_argument("--in_channels",
                         type=int,
