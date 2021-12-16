@@ -156,18 +156,25 @@ def trim_ranges(l, r, bound):
 
 
 def generate_patch(masked_image, patient_id, patch_size=224):
-    Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
-        os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/", f"{patient_id}.png"), 'PNG')
+    # Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
+    #     os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/", f"{patient_id}.png"), 'PNG')
     w, h = masked_image.shape
     shift = patch_size // 2
 
     x, y = np.where(masked_image > 0.5)
-    if len(x) == 0:
-        x = [112]
-        y = [112]
-    i = np.random.randint(len(x))
-    l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
-    l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
+    x.append(256)
+    y.append(256)
+    x_filtered = []
+    y_filtered = []
+
+    for t in zip(x, y):
+        if shift <= t[0] and t[0] < 512 - shift and shift <= t[1] and t[1] < 512 - shift:
+            x_filtered.append(t[0])
+            y_filtered.append(t[1])
+
+    i = np.random.randint(len(x_filtered))
+    l_x, r_x = trim_ranges(x_filtered[i] - shift, x_filtered[i] + shift, w)
+    l_y, r_y = trim_ranges(y_filtered[i] - shift, y_filtered[i] + shift, h)
     return Image.fromarray((255 * masked_image[l_x:r_x, l_y:r_y]).astype(np.int8), mode='L').convert('RGB')
 
 
@@ -289,7 +296,7 @@ def test_single_label_patching(model, device, logger, test_patching_dataset, cri
                 _, top_class = y_pred.topk(1, dim=1)
 
                 test_labels_per_idx[image_idx] = batch_label.tolist()[0]
-                test_preds_per_idx[image_idx].append(top_class.tolist()[0])
+                test_preds_per_idx[image_idx] = test_preds_per_idx[image_idx] + top_class.tolist()[0]
 
                 test_labels.append(batch_label.view(*top_class.shape))
                 test_preds.append(top_class)
@@ -323,7 +330,7 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/"),
                         help="Path to the images")
     parser.add_argument("--labels",
                         type=str,
@@ -335,7 +342,7 @@ def parse_args():
                         help="Path to the file with training/validation dataset files list")
     parser.add_argument("--test_subset",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv"),
                         help="Path to the file with test dataset files list")
     parser.add_argument("--segmentation_model",
                         type=str,
@@ -348,7 +355,7 @@ def parse_args():
                         help="whether to train model utilizing patching approach")
     parser.add_argument("--k_patches",
                         type=int,
-                        default=1,
+                        default=10,
                         help="number of patches generated for an image")
     parser.add_argument("--in_channels",
                         type=int,
