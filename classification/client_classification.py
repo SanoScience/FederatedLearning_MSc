@@ -269,6 +269,8 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
+        model_path = '/net/scratch/people/plgfilipsl/FederatedLearning_MSc/classification/rsna_resnet_18-4'
+        self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
         # Load data
         self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
