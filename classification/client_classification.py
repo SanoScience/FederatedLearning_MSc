@@ -98,6 +98,7 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
         running_accuracy = 0.0
         preds = []
         labels = []
+        total_batch_idx = 0        
 
         for i in range(K):
             logger.info(f"Starting repetition {i + 1} / {K} ")
@@ -123,17 +124,17 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
 
                 if batch_idx % 10 == 0:
                     logger.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                                f" Loss: {running_loss / ((batch_idx + 1)):.4f}"
-                                f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
+                                f" Loss: {running_loss / ((total_batch_idx + 1)):.4f}"
+                                f" Acc: {running_accuracy / (total_batch_idx + 1):.4f}"
                                 f" Time: {time.time() - start_time_epoch:2f}")
-
+                total_batch_idx += 1
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
         logger.info("Training report:")
         logger.info(classification_report(labels, preds, target_names=classes_names))
 
-        train_loss = running_loss / len(train_loader)
-        train_acc = running_accuracy / len(train_loader)
+        train_loss = running_loss / total_batch_idx
+        train_acc = running_accuracy / total_batch_idx
 
         logger.info(f" Training Loss: {train_loss:.4f}"
                     f" Training Acc: {train_acc:.4f}")
@@ -287,7 +288,7 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
-                           epochs=args.local_epochs)
+                           epochs=args.local_epochs, K=args.k_patches)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):
@@ -348,8 +349,8 @@ def main():
     clients_number = args.clients_number
 
     # Start client
-    logger.info("Connecting to:" + f"{server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081",
+    logger.info("Connecting to:" + f"{server_addr}:8087")
+    fl.client.start_numpy_client(f"{server_addr}:8087",
                                  client=ClassificationRSNAClient(client_id, clients_number))
 
 

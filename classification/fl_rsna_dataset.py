@@ -79,6 +79,6 @@ class RSNADataset(Dataset):
             # image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,
             #                        self.ids_labels_df.iloc[idx]['patient_id'])
             image_rgb = generate_patch(image_l, self.ids_labels_df.iloc[idx]['patient_id'], patch_size=224)
-            image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
+            # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/{idx}.png', 'PNG')
         return self.transform(image_rgb), self.labels[idx]

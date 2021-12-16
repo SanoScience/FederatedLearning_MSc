@@ -162,8 +162,6 @@ def generate_patch(masked_image, patient_id, patch_size=224):
     shift = patch_size // 2
 
     x, y = np.where(masked_image > 0.5)
-    x.append(256)
-    y.append(256)
     x_filtered = []
     y_filtered = []
 
@@ -171,7 +169,9 @@ def generate_patch(masked_image, patient_id, patch_size=224):
         if shift <= t[0] and t[0] < 512 - shift and shift <= t[1] and t[1] < 512 - shift:
             x_filtered.append(t[0])
             y_filtered.append(t[1])
-
+    if len(x_filtered) == 0:
+        x_filtered = [256]
+        y_filtered = [256]
     i = np.random.randint(len(x_filtered))
     l_x, r_x = trim_ranges(x_filtered[i] - shift, x_filtered[i] + shift, w)
     l_y, r_y = trim_ranges(y_filtered[i] - shift, y_filtered[i] + shift, h)

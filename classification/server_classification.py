@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # Start server
     logger.info(f"Starting server on {server_addr}")
     fl.server.start_server(
-        server_address=f"{server_addr}:8081",
+        server_address=f"{server_addr}:8087",
         config={"num_rounds": MAX_ROUNDS},
         strategy=strategy,
     )
