@@ -99,7 +99,7 @@ def get_eval_fn(net):
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
-@click.option('--o', default='Adam', type=str, help='Optimizer name')
+@click.option('--o', default='Adam', type=str, help='Optimizer name (Adam, SGD, Adagrad')
 def run_server(le, a, c, r, mf, ff, bs, lr, o):
     global OPTIMIZER_NAME, LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
     LOCAL_EPOCHS = le
