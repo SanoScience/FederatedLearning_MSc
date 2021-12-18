@@ -29,15 +29,18 @@ if torch.cuda.is_available():
     logger.info(f"CUDA is available: {device_name}")
 
 
-def train(net, train_loader, epochs, lr, dice_only):
+def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
     """Train the network on the training set."""
     if dice_only:
         criterion = DiceLoss()
     else:
         criterion = DiceBCELoss()
-    optimizer = torch.optim.Adam(net.parameters(),
-                                 lr=lr,
-                                 weight_decay=0.0001)
+    if optimizer_name == 'Adam':
+        optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.0001)
+    elif optimizer_name == 'SGD':
+        optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    elif optimizer_name == 'Adagrad':
+        optimizer = torch.optim.Adagrad(net.parameters(), lr=lr)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         logger.info('Starting epoch {}/{}'.format(epoch + 1, epochs))
@@ -142,10 +145,12 @@ def main():
             # todo: use if necessary :)
             # batch_size: int = config["batch_size"]
             epochs: int = config["local_epochs"]
-            lr: int = config["learning_rate"]
+            lr: float = config["learning_rate"]
+            optimizer_name: str = config["optimizer_name"]
             dice_only = config["dice_only"]
 
-            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only)
+            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
+                  optimizer_name=optimizer_name)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):

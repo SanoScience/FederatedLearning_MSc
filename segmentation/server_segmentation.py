@@ -26,6 +26,7 @@ FRACTION_FIT = 0.75
 TIME_BUDGET = 60
 LEARNING_RATE = 0.0001
 DICE_ONLY = False
+OPTIMIZER_NAME = 'Adam'
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -45,13 +46,14 @@ def fit_config(rnd: int):
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
         "dice_only": DICE_ONLY,
+        "optimizer_name": OPTIMIZER_NAME,
         "time_budget": TIME_BUDGET  # in minutes
     }
     return config
 
 
 def results_dirname_generator():
-    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
+    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}'
 
 
 def get_eval_fn(net):
@@ -97,8 +99,9 @@ def get_eval_fn(net):
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
-def run_server(le, a, c, r, mf, ff, bs, lr):
-    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
+@click.option('--o', default='Adam', type=str, help='Optimizer name')
+def run_server(le, a, c, r, mf, ff, bs, lr, o):
+    global OPTIMIZER_NAME, LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
     CLIENTS = c
@@ -107,6 +110,7 @@ def run_server(le, a, c, r, mf, ff, bs, lr):
     FRACTION_FIT = ff
     BATCH_SIZE = bs
     LEARNING_RATE = lr
+    OPTIMIZER_NAME = o
 
     logger.info("Parsing arguments")
 
