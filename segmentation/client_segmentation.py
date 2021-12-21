@@ -6,6 +6,7 @@ import warnings
 import flwr as fl
 import numpy as np
 import torch
+from segmentation_models_pytorch import UnetPlusPlus
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
@@ -95,11 +96,7 @@ def main():
     clients_number = int(arguments[3])
 
     # Load model
-    net = UNet(input_channels=1,
-               output_channels=64,
-               n_classes=1).to(DEVICE)
-
-    # Load data
+    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
 
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
