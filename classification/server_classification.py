@@ -221,7 +221,7 @@ if __name__ == "__main__":
     segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 
     # Define strategy
-    if args.patching:
+    if args.patches:
         factory = RSNAStrategyFactory(args, segmentation_model)
     else:
         factory = RSNAStrategyFactory(args)
