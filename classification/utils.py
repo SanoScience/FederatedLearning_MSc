@@ -430,7 +430,7 @@ def parse_args():
 
     parser.add_argument("--clients_number",
                         type=int,
-                        default=4,
+                        default=3,
                         help="number of the clients")
 
     parser.add_argument("--dataset",
