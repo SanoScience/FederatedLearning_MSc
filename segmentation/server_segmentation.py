@@ -11,6 +11,7 @@ from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
 import shutil
+from segmentation_models_pytorch import UnetPlusPlus
 
 loss = []
 jacc = []
@@ -53,7 +54,7 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_IID'
+    return f'unet++_resnet34_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_IID'
 
 
 def get_eval_fn(net):
@@ -115,9 +116,11 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     logger.info("Parsing arguments")
 
     # Define model
-    net = UNet(input_channels=1,
-               output_channels=64,
-               n_classes=1).to(DEVICE)
+    # net = UNet(input_channels=1,
+    #            output_channels=64,
+    #            n_classes=1).to(DEVICE)
+
+    net = UnetPlusPlus('resnet34', in_channels=1, classes=1).to(DEVICE)
 
     # Define strategy
     strategy = strategies[FED_AGGREGATION_STRATEGY](
