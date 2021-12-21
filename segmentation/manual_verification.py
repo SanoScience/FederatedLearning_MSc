@@ -46,8 +46,6 @@ BATCH_SIZE = 1
 images_path = '../cov_dataset/images'
 masks_path = '../cov_dataset/masks'
 labels = "../cov_dataset/labels.csv"
-# images_path = '../random_imgs/images'
-# masks_path = '../random_imgs/images'
 model_path = '../unet_5'
 
 net = UNet(input_channels=1,

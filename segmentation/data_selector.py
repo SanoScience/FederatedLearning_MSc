@@ -24,15 +24,18 @@ class IIDSelector(DataSelector):
             image_to_mask[os.path.basename(i)] = (i, m)
         for k, v in labels_dict.items():
             # data is mapping from class to filename
+            # print(k, v)
             data[v].append(k)
         res_images = []
         res_masks = []
 
         for cls, imgs in data.items():
             for img in imgs:
-                res_img, res_mask = image_to_mask[img]
-                res_images.append(res_img)
-                res_masks.append(res_mask)
+                if img in image_to_mask and cls != 'no_class':
+                    res_img, res_mask = image_to_mask[img]
+                    res_images.append(res_img)
+                    res_masks.append(res_mask)
+
         return res_images, res_masks
 
     def select_client_data(self, images, masks, client_id, number_of_clients, labels_dict):

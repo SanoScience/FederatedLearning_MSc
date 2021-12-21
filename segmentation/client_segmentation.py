@@ -48,6 +48,7 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
         net.train()
         running_loss = 0.0
         running_jaccard = 0.0
+        i = 0
         for batch_idx, (images, masks) in enumerate(train_loader):
             images = images.to(DEVICE)
             masks = masks.to(DEVICE)
@@ -65,22 +66,23 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
             # mask = masks[0, 0, :]
             # out = outputs_masks[0, 0, :]
             # res = torch.cat((mask, out), 1).cpu().detach()
-
-            logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
-                        .format(batch_idx + 1, len(train_loader),
-                                loss.item(), jac.item(),
-                                time.time() - start_time_epoch))
+            if i % 100 == 0:
+                logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
+                            .format(batch_idx + 1, len(train_loader),
+                                    loss.item(), jac.item(),
+                                    time.time() - start_time_epoch))
+            i += 1
 
 
 def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
     masks_path, images_path, labels = get_data_paths()
 
-    dataset = LungSegDataset(client_id=client_id,
-                             clients_number=clients_number,
-                             path_to_images=images_path,
-                             path_to_masks=masks_path,
-                             image_size=IMAGE_SIZE, labels=labels)
+    # dataset = LungSegDataset(client_id=client_id,
+    #                          clients_number=clients_number,
+    #                          path_to_images=images_path,
+    #                          path_to_masks=masks_path,
+    #                          image_size=IMAGE_SIZE, labels=labels)
 
     train_dataset = LungSegDataset(client_id=client_id,
                                    clients_number=clients_number,
@@ -89,12 +91,12 @@ def load_data(client_id, clients_number):
                                    image_size=IMAGE_SIZE,
                                    mode="train", labels=labels)
 
-    validation_dataset = LungSegDataset(client_id=client_id,
-                                        clients_number=clients_number,
-                                        path_to_images=images_path,
-                                        path_to_masks=masks_path,
-                                        image_size=IMAGE_SIZE,
-                                        mode="valid", labels=labels)
+    # validation_dataset = LungSegDataset(client_id=client_id,
+    #                                     clients_number=clients_number,
+    #                                     path_to_images=images_path,
+    #                                     path_to_masks=masks_path,
+    #                                     image_size=IMAGE_SIZE,
+    #                                     mode="valid", labels=labels)
 
     # ids = np.array([i for i in range(len(dataset))])
     # np.random.shuffle(ids)
