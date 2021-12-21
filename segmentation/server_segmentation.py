@@ -57,11 +57,11 @@ def results_dirname_generator():
 
 
 def get_eval_fn(net):
-    masks_path, images_path = get_data_paths()
+    masks_path, images_path, labels = get_data_paths()
     test_dataset = LungSegDataset(path_to_images=images_path,
                                   path_to_masks=masks_path,
                                   image_size=IMAGE_SIZE,
-                                  mode="test")
+                                  mode="test", labels=labels)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
     def evaluate(weights):

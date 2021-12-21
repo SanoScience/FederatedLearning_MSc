@@ -74,27 +74,27 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
 
 def load_data(client_id, clients_number):
     """ Load Lung dataset for segmentation """
-    masks_path, images_path = get_data_paths()
+    masks_path, images_path, labels = get_data_paths()
 
     dataset = LungSegDataset(client_id=client_id,
                              clients_number=clients_number,
                              path_to_images=images_path,
                              path_to_masks=masks_path,
-                             image_size=IMAGE_SIZE)
+                             image_size=IMAGE_SIZE, labels=labels)
 
     train_dataset = LungSegDataset(client_id=client_id,
                                    clients_number=clients_number,
                                    path_to_images=images_path,
                                    path_to_masks=masks_path,
                                    image_size=IMAGE_SIZE,
-                                   mode="train")
+                                   mode="train", labels=labels)
 
     validation_dataset = LungSegDataset(client_id=client_id,
                                         clients_number=clients_number,
                                         path_to_images=images_path,
                                         path_to_masks=masks_path,
                                         image_size=IMAGE_SIZE,
-                                        mode="valid")
+                                        mode="valid", labels=labels)
 
     # ids = np.array([i for i in range(len(dataset))])
     # np.random.shuffle(ids)
