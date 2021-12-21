@@ -266,11 +266,9 @@ class ClassificationNIHClient(fl.client.NumPyClient):
 class ClassificationRSNAClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number):
         # Load model
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = torchvision.models.resnet34(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
-        model_path = '/net/scratch/people/plgfilipsl/FederatedLearning_MSc/classification/rsna_resnet_18-4'
-        self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
         # Load data
         self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
@@ -290,7 +288,7 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
-                           epochs=args.local_epochs, K=args.k_patches)
+                           epochs=args.local_epochs, K=args.k_patches_client)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):
@@ -307,7 +305,7 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
 class ClassificationCovid19RDClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number, args):
         # Load model
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = torchvision.models.resnet34(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
 
@@ -329,7 +327,7 @@ class ClassificationCovid19RDClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
-                           epochs=args.local_epochs, K=args.k_patches)
+                           epochs=args.local_epochs, K=args.k_patches_client)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):

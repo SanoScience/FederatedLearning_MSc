@@ -191,7 +191,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
 
 # RESNET
-# model = models.resnet18(pretrained=False)
+# model = models.resnet34(pretrained=False)
 # model.conv1 = nn.Conv1d(args.in_channels, 64, (7, 7), (2, 2), (3, 3), bias=False)
 # num_ftrs = model.fc.in_features
 # model.fc = nn.Linear(num_ftrs, args.classes)

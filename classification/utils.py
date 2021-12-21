@@ -95,10 +95,22 @@ def get_train_transform_covid_19_rd(args):
         # Converting images to the size that the model expects
         torchvision.transforms.Resize(size=(args.size, args.size)),
         torchvision.transforms.RandomHorizontalFlip(),  # A RandomHorizontalFlip to augment our data
+        torchvision.transforms.ColorJitter(
+            brightness=[0.8, 1.2],
+            contrast=[0.8, 1.2],
+            saturation=[0.8, 1.2],
+            hue=[-0.1, 0.1]
+        ),
+        torchvision.transforms.RandomAffine(
+            degrees=[-90, 90],
+            translate=[0.2, 0.2],
+            scale=[1, 1.3],
+            shear=[-10, 10],
+        ),
         torchvision.transforms.ToTensor(),  # Converting to tensor
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
-        # Normalizing the data to the data that the ResNet18 was trained on
+        # Normalizing the data to the data that the ResNet34 was trained on
 
     ])
 
@@ -111,7 +123,7 @@ def get_test_transform_covid_19_rd(args):
         torchvision.transforms.ToTensor(),  # Converting to tensor
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
-        # Normalizing the data to the data that the ResNet18 was trained on
+        # Normalizing the data to the data that the ResNet34 was trained on
 
     ])
 
@@ -155,7 +167,7 @@ def trim_ranges(l, r, bound):
     return l, r
 
 
-def generate_patch(masked_image, patient_id, patch_size=224):
+def generate_patch(masked_image, patient_id, patch_size=128):
     # Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
     #     os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/", f"{patient_id}.png"), 'PNG')
     w, h = masked_image.shape
@@ -353,17 +365,21 @@ def parse_args():
                         type=bool,
                         default=True,
                         help="whether to train model utilizing patching approach")
-    parser.add_argument("--k_patches",
+    parser.add_argument("--k_patches_client",
+                        type=int,
+                        default=1,
+                        help="number of patches generated for an image in client")
+    parser.add_argument("--k_patches_server",
                         type=int,
                         default=10,
-                        help="number of patches generated for an image")
+                        help="number of patches generated for an image in server")
     parser.add_argument("--in_channels",
                         type=int,
                         default=3,
                         help="Number of input channels")
     parser.add_argument("--local_epochs",
                         type=int,
-                        default=3,
+                        default=1,
                         help="Number of local epochs")
     parser.add_argument("--segmentation_size",
                         type=int,
@@ -371,7 +387,7 @@ def parse_args():
                         help="input image size in segmentation model")
     parser.add_argument("--size",
                         type=int,
-                        default=224,
+                        default=128,
                         help="input image size in classification model")
     parser.add_argument("--num_workers",
                         type=int,
@@ -424,7 +440,7 @@ def parse_args():
 
     parser.add_argument("--num_rounds",
                         type=int,
-                        default=20,
+                        default=100,
                         help="number of rounds")
 
     args = parser.parse_args()

@@ -91,11 +91,9 @@ class NIHStrategyFactory:
 class RSNAStrategyFactory:
     def __init__(self, args, segmentation_model=None):
         self.args = args
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = torchvision.models.resnet34(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model = self.model.to(DEVICE)
-        model_path = '/net/scratch/people/plgfilipsl/FederatedLearning_MSc/classification/rsna_resnet_18-4'
-        self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         self.segmentation_model = segmentation_model
 
     def get_eval_fn(self, model, args, logger):
@@ -118,7 +116,7 @@ class RSNAStrategyFactory:
             model.load_state_dict(state_dict, strict=True)
             if args.patches:
                 test_acc, test_loss, report = test_single_label_patching(model, DEVICE, logger, test_dataset, criterion,
-                                                                         optimizer, classes_names, args.k_patches)
+                                                                         optimizer, classes_names, args.k_patches_server)
             else:
                 test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
                                                                 optimizer, classes_names)
@@ -150,7 +148,7 @@ class RSNAStrategyFactory:
 class Covid19RDStrategyFactory:
     def __init__(self, args, segmentation_model=None):
         self.args = args
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = torchvision.models.resnet34(pretrained=True)
         self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
         self.model.cuda()
         self.segmentation_model = segmentation_model
@@ -175,7 +173,7 @@ class Covid19RDStrategyFactory:
             model.load_state_dict(state_dict, strict=True)
             if args.patches:
                 test_acc, test_loss, report = test_single_label_patching(model, DEVICE, logger, test_dataset, criterion,
-                                                                         optimizer, classes_names, args.k_patches)
+                                                                         optimizer, classes_names, args.k_patches_server)
             else:
                 test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
                                                                 optimizer, classes_names)
@@ -223,7 +221,10 @@ if __name__ == "__main__":
     segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 
     # Define strategy
-    factory = RSNAStrategyFactory(args, segmentation_model)
+    if args.patching:
+        factory = RSNAStrategyFactory(args, segmentation_model)
+    else:
+        factory = RSNAStrategyFactory(args)
     strategy = factory.get_strategy()
 
     server_addr = socket.gethostname()
