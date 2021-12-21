@@ -16,8 +16,10 @@ from segmentation_models_pytorch import UnetPlusPlus
 loss = []
 jacc = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 2
 ROUND = 0
+
+BATCH_SIZE = 2
+IMAGE_SIZE = 512
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -25,7 +27,8 @@ LOCAL_EPOCHS = 1
 MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
 TIME_BUDGET = 60
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
+
 DICE_ONLY = False
 OPTIMIZER_NAME = 'Adam'
 
@@ -44,6 +47,7 @@ strategies = {'FedAdam': fl.server.strategy.FedAdam,
 def fit_config(rnd: int):
     config = {
         "batch_size": BATCH_SIZE,
+        "image_size": IMAGE_SIZE,
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
         "dice_only": DICE_ONLY,
@@ -54,7 +58,8 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'unet++_resnet34_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_IID'
+    return f'unet++_resnet34_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID '
 
 
 def get_eval_fn(net):
