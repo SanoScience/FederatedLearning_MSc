@@ -6,7 +6,6 @@ import flwr as fl
 import pandas as pd
 from torch.utils.data import DataLoader
 import os
-from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
