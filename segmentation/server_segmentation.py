@@ -120,7 +120,7 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     #            output_channels=64,
     #            n_classes=1).to(DEVICE)
 
-    net = UnetPlusPlus('resnet34', in_channels=1, classes=1).to(DEVICE)
+    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
 
     # Define strategy
     strategy = strategies[FED_AGGREGATION_STRATEGY](
