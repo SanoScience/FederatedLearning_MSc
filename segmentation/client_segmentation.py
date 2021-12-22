@@ -7,7 +7,6 @@ import flwr as fl
 import numpy as np
 import torch
 from segmentation_models_pytorch import UnetPlusPlus
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from segmentation.common import get_state_dict, jaccard, validate, get_data_paths

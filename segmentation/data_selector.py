@@ -1,3 +1,4 @@
+import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import os
@@ -46,6 +47,9 @@ class IIDSelector(DataSelector):
         client_masks = ordered_masks[:test_fraction]
         sampled_images = [path for i, path in enumerate(client_images) if (i % number_of_clients) == client_id]
         sampled_masks = [path for i, path in enumerate(client_masks) if (i % number_of_clients) == client_id]
+        zipped = list(zip(sampled_images, sampled_masks))
+        random.shuffle(zipped)
+        sampled_images, sampled_masks = zip(*zipped)
         return sampled_images, sampled_masks
 
     def select_server_data(self, images, masks, labels_dict):
