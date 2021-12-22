@@ -220,9 +220,10 @@ if __name__ == "__main__":
     # segmentation_model = UNet(input_channels=1,
     #                           output_channels=64,
     #                           n_classes=1).to(DEVICE)
-    segmentation_model = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
-
-    segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
+    segmentation_model = None
+    # segmentation_model = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
+    #
+    # segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 
     # Define strategy
     if args.patches:

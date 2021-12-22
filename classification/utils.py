@@ -362,7 +362,7 @@ def parse_args():
                         type=str,
                         # default="/net/archive/groups/plggsano/fl_msc/unet_model",
                         # default="/Users/filip/Data/Studies/MastersThesis/unet_model",
-                        default="/net/archive/groups/plggsano/fl_msc/unet_14_jacc_0.906_loss_0.15",
+                        default="/net/archive/groups/plggsano/fl_msc/unet_14_jacc_0.906_loss_0.156",
                         help="Path to the file with segmentation model")
     parser.add_argument("--patches",
                         type=bool,

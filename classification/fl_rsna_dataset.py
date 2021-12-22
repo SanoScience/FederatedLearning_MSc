@@ -73,7 +73,7 @@ class RSNADataset(Dataset):
         image = Image.open(image_path).convert('L')
         image_l = np.array(image) / 255
         image_rgb = None
-        if self.segmentation_model:
+        if self.args.patches:
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/original_{idx}.png', 'PNG')
             # image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,

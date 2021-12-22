@@ -167,11 +167,11 @@ def load_data_NIH(client_id, clients_number):
 
 def load_data_RSNA(client_id, clients_number):
     segmentation_model = None
-    if args.patches:
-        segmentation_model = UNet(input_channels=1,
-                                  output_channels=64,
-                                  n_classes=1).to(device)
-        segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
+    # if args.patches:
+    #     segmentation_model = UNet(input_channels=1,
+    #                               output_channels=64,
+    #                               n_classes=1).to(device)
+    #     segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 
     train_transform = get_train_transform_covid_19_rd(args)
     train_dataset = RSNADataset(args, client_id, clients_number, args.train_subset, args.images,
