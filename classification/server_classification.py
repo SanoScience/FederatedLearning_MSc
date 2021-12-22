@@ -122,14 +122,14 @@ class RSNAStrategyFactory:
             else:
                 test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
                                                                 optimizer, classes_names)
-            torch.save(model.state_dict(), f'rsna_resnet_34_patching-{ROUND}')
+            torch.save(model.state_dict(), f'rsna_resnet_34_patching_1024-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
             reports.append(report)
 
             df = pd.DataFrame.from_dict(
                 {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
-            df.to_csv(f"rsna_resnet_34_r_patching_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
+            df.to_csv(f"rsna_resnet_34_r_patching_1024_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
             ROUND += 1
             return test_loss, {"test_acc": test_acc}

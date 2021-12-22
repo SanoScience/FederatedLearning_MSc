@@ -31,7 +31,7 @@ class RSNADataset(Dataset):
             samples = self.ids_labels_df.head(32)
             print("Debug mode, samples: ", samples)
 
-        extension = '.dcm'
+        extension = '.png'
 
         # IMAGES
         self.images = [os.path.join(images_source, row['patient_id']) + extension for _, row in
@@ -68,17 +68,17 @@ class RSNADataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.images[idx]
-        im_array = self.get_image(image_path)
-        image_rgb = Image.fromarray(im_array).convert('RGB')
-        # image = Image.open(image_path).convert('L')
-        # image_l = np.array(image) / 255
-        # image_rgb = None
+        # im_array = self.get_image(image_path)
+        # image_rgb = Image.fromarray(im_array).convert('RGB')
+        image = Image.open(image_path).convert('L')
+        image_l = np.array(image) / 255
+        image_rgb = None
         if self.segmentation_model:
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/original_{idx}.png', 'PNG')
-            image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,
-                                   self.ids_labels_df.iloc[idx]['patient_id'])
-            # image_rgb = generate_patch(image_l, self.ids_labels_df.iloc[idx]['patient_id'], patch_size=128)
-            image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
+            # image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,
+            #                        self.ids_labels_df.iloc[idx]['patient_id'])
+            image_rgb = generate_patch(image_l, self.ids_labels_df.iloc[idx]['patient_id'], patch_size=self.args.size)
+            # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/{idx}.png', 'PNG')
         return self.transform(image_rgb), self.labels[idx]
