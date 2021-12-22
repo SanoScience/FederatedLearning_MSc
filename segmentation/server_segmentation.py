@@ -16,7 +16,7 @@ jacc = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 IMAGE_SIZE = 1024
 MAX_ROUND = 5
 CLIENTS = 3
