@@ -9,6 +9,7 @@ import torch
 from torchvision import transforms
 import torchvision.transforms.functional as F
 from torch.utils.data.dataset import Dataset
+import pandas as pd
 
 
 def get_key(fp):
@@ -26,7 +27,8 @@ class LungSegDataset(Dataset):
                  path_to_images: str = None,
                  path_to_masks: str = None,
                  image_size: int = None,
-                 mode: str = None) -> None:
+                 mode: str = None,
+                 labels: str = None) -> None:
         """
         Args:
             path_to_images:
@@ -40,10 +42,11 @@ class LungSegDataset(Dataset):
         selector = IIDSelector()
         imgs = sorted(glob.glob(self.path_to_images + "/*.jpeg"), key=get_key)
         masks = sorted(glob.glob(self.path_to_masks + "/*.png"), key=get_key)
+        labels_dict = pd.read_csv(labels).set_index('filename').to_dict()['class']
         if mode == 'test':
-            self.images, self.masks = selector.select_server_data(imgs, masks)
+            self.images, self.masks = selector.select_server_data(imgs, masks, labels_dict)
         else:
-            self.images, self.masks = selector.select_client_data(imgs, masks, client_id, clients_number)
+            self.images, self.masks = selector.select_client_data(imgs, masks, client_id, clients_number, labels_dict)
 
     def __getitem__(self, x) -> (torch.Tensor, torch.Tensor):
         """

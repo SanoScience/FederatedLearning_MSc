@@ -7,7 +7,8 @@ from segmentation.loss_functions import DiceLoss, DiceBCELoss
 
 def get_data_paths():
     return "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/masks", \
-           "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images"
+           "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images", \
+           "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/labels.csv"
 
 
 def get_state_dict(net, parameters):

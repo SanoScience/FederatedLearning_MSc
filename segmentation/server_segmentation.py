@@ -6,17 +6,19 @@ import flwr as fl
 import pandas as pd
 from torch.utils.data import DataLoader
 import os
-from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
 from segmentation.models.unet import UNet
 import shutil
+from segmentation_models_pytorch import UnetPlusPlus
 
 loss = []
 jacc = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 2
 ROUND = 0
+
+BATCH_SIZE = 2
+IMAGE_SIZE = 512
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -24,8 +26,10 @@ LOCAL_EPOCHS = 1
 MIN_FIT_CLIENTS = 2
 FRACTION_FIT = 0.75
 TIME_BUDGET = 60
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
+
 DICE_ONLY = False
+OPTIMIZER_NAME = 'Adam'
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -42,24 +46,27 @@ strategies = {'FedAdam': fl.server.strategy.FedAdam,
 def fit_config(rnd: int):
     config = {
         "batch_size": BATCH_SIZE,
+        "image_size": IMAGE_SIZE,
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
         "dice_only": DICE_ONLY,
+        "optimizer_name": OPTIMIZER_NAME,
         "time_budget": TIME_BUDGET  # in minutes
     }
     return config
 
 
 def results_dirname_generator():
-    return f'_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_lr_{LEARNING_RATE}'
+    return f'unet++_resnet34_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID '
 
 
 def get_eval_fn(net):
-    masks_path, images_path = get_data_paths()
+    masks_path, images_path, labels = get_data_paths()
     test_dataset = LungSegDataset(path_to_images=images_path,
                                   path_to_masks=masks_path,
                                   image_size=IMAGE_SIZE,
-                                  mode="test")
+                                  mode="test", labels=labels)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
     def evaluate(weights):
@@ -97,8 +104,9 @@ def get_eval_fn(net):
 @click.option('--ff', default=FRACTION_FIT, type=float, help='Fraction fit')
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
-def run_server(le, a, c, r, mf, ff, bs, lr):
-    global LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
+@click.option('--o', default='Adam', type=str, help='Optimizer name (Adam, SGD, Adagrad')
+def run_server(le, a, c, r, mf, ff, bs, lr, o):
+    global OPTIMIZER_NAME, LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
     CLIENTS = c
@@ -107,13 +115,16 @@ def run_server(le, a, c, r, mf, ff, bs, lr):
     FRACTION_FIT = ff
     BATCH_SIZE = bs
     LEARNING_RATE = lr
+    OPTIMIZER_NAME = o
 
     logger.info("Parsing arguments")
 
     # Define model
-    net = UNet(input_channels=1,
-               output_channels=64,
-               n_classes=1).to(DEVICE)
+    # net = UNet(input_channels=1,
+    #            output_channels=64,
+    #            n_classes=1).to(DEVICE)
+
+    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
 
     # Define strategy
     strategy = strategies[FED_AGGREGATION_STRATEGY](

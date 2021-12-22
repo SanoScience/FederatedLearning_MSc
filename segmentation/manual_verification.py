@@ -45,8 +45,7 @@ BATCH_SIZE = 1
 
 images_path = '../cov_dataset/images'
 masks_path = '../cov_dataset/masks'
-# images_path = '../random_imgs/images'
-# masks_path = '../random_imgs/images'
+labels = "../cov_dataset/labels.csv"
 model_path = '../unet_5'
 
 net = UNet(input_channels=1,
@@ -57,7 +56,7 @@ net.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 test_dataset = LungSegDataset(path_to_images=images_path,
                               path_to_masks=masks_path,
                               image_size=IMAGE_SIZE,
-                              mode="test")
+                              mode="test", labels=labels)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 criterion = DiceLoss()

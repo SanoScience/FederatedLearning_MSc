@@ -6,6 +6,7 @@ import warnings
 import flwr as fl
 import numpy as np
 import torch
+from segmentation_models_pytorch import UnetPlusPlus
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
@@ -14,9 +15,8 @@ from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
 from segmentation.models.unet import UNet
 
-IMAGE_SIZE = 512
-BATCH_SIZE = 2
 
+train_loader = None
 hdlr = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.addHandler(hdlr)
@@ -29,15 +29,18 @@ if torch.cuda.is_available():
     logger.info(f"CUDA is available: {device_name}")
 
 
-def train(net, train_loader, epochs, lr, dice_only):
+def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
     """Train the network on the training set."""
     if dice_only:
         criterion = DiceLoss()
     else:
         criterion = DiceBCELoss()
-    optimizer = torch.optim.Adam(net.parameters(),
-                                 lr=lr,
-                                 weight_decay=0.0001)
+    if optimizer_name == 'Adam':
+        optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.0001)
+    elif optimizer_name == 'SGD':
+        optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    elif optimizer_name == 'Adagrad':
+        optimizer = torch.optim.Adagrad(net.parameters(), lr=lr)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         logger.info('Starting epoch {}/{}'.format(epoch + 1, epochs))
@@ -45,6 +48,7 @@ def train(net, train_loader, epochs, lr, dice_only):
         net.train()
         running_loss = 0.0
         running_jaccard = 0.0
+        i = 0
         for batch_idx, (images, masks) in enumerate(train_loader):
             images = images.to(DEVICE)
             masks = masks.to(DEVICE)
@@ -59,56 +63,27 @@ def train(net, train_loader, epochs, lr, dice_only):
             running_jaccard += jac.item()
             running_loss += loss.item()
 
-            # mask = masks[0, 0, :]
-            # out = outputs_masks[0, 0, :]
-            # res = torch.cat((mask, out), 1).cpu().detach()
-
-            logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
-                        .format(batch_idx + 1, len(train_loader),
-                                loss.item(), jac.item(),
-                                time.time() - start_time_epoch))
+            if i % 100 == 0:
+                logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
+                            .format(batch_idx + 1, len(train_loader),
+                                    loss.item(), jac.item(),
+                                    time.time() - start_time_epoch))
+            i += 1
 
 
-def load_data(client_id, clients_number):
+def load_data(client_id, clients_number, batch_size, image_size):
     """ Load Lung dataset for segmentation """
-    masks_path, images_path = get_data_paths()
+    masks_path, images_path, labels = get_data_paths()
 
     dataset = LungSegDataset(client_id=client_id,
                              clients_number=clients_number,
                              path_to_images=images_path,
                              path_to_masks=masks_path,
-                             image_size=IMAGE_SIZE)
+                             image_size=image_size,
+                             mode="train",
+                             labels=labels)
 
-    train_dataset = LungSegDataset(client_id=client_id,
-                                   clients_number=clients_number,
-                                   path_to_images=images_path,
-                                   path_to_masks=masks_path,
-                                   image_size=IMAGE_SIZE,
-                                   mode="train")
-
-    validation_dataset = LungSegDataset(client_id=client_id,
-                                        clients_number=clients_number,
-                                        path_to_images=images_path,
-                                        path_to_masks=masks_path,
-                                        image_size=IMAGE_SIZE,
-                                        mode="valid")
-
-    # ids = np.array([i for i in range(len(dataset))])
-    # np.random.shuffle(ids)
-    # train_ids, val_ids = train_test_split(ids)
-    # logger.info(f"Dataset size: {len(train_dataset)}; {len(ids)} ")
-    # train_sampler = SubsetRandomSampler(train_ids)
-    # val_sampler = SubsetRandomSampler(val_ids)
-
-    train_loader = DataLoader(train_dataset,
-                              batch_size=BATCH_SIZE,)
-                              # sampler=train_sampler)
-
-    # val_loader = DataLoader(validation_dataset,
-    #                         batch_size=BATCH_SIZE,
-    #                         sampler=val_sampler)
-
-    return train_loader, None
+    return DataLoader(dataset, batch_size=batch_size)
 
 
 def main():
@@ -121,12 +96,7 @@ def main():
     clients_number = int(arguments[3])
 
     # Load model
-    net = UNet(input_channels=1,
-               output_channels=64,
-               n_classes=1).to(DEVICE)
-
-    # Load data
-    train_loader, val_loader = load_data(client_id, clients_number)
+    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
 
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
@@ -138,20 +108,28 @@ def main():
             net.load_state_dict(state_dict, strict=True)
 
         def fit(self, parameters, config):
+            global train_loader
             self.set_parameters(parameters)
-            # todo: use if necessary :)
-            # batch_size: int = config["batch_size"]
+            batch_size: int = config["batch_size"]
+            image_size: int = config["image_size"]
             epochs: int = config["local_epochs"]
-            lr: int = config["learning_rate"]
+            lr: float = config["learning_rate"]
+            optimizer_name: str = config["optimizer_name"]
             dice_only = config["dice_only"]
-            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only)
+
+            if not train_loader:
+                train_loader = load_data(client_id, clients_number, batch_size, image_size)
+
+            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
+                  optimizer_name=optimizer_name)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
-            self.set_parameters(parameters)
-            loss, jaccard_score = validate(net, val_loader, DEVICE)
-            logger.info(f"Loss: {loss}, jaccard score: {jaccard_score}")
-            return float(loss), len(val_loader), {"jaccard_score": float(jaccard_score)}
+            pass
+            # self.set_parameters(parameters)
+            # loss, jaccard_score = validate(net, val_loader, DEVICE)
+            # logger.info(f"Loss: {loss}, jaccard score: {jaccard_score}")
+            # return float(loss), len(val_loader), {"jaccard_score": float(jaccard_score)}
 
     # Start client
     logger.info(f"Connecting to: {server_addr}:8081")
