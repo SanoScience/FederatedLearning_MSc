@@ -94,8 +94,11 @@ def main():
     clients_number = int(arguments[3])
 
     # Load model
-    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
-
+    net = UnetPlusPlus('resnet50',
+                       in_channels=1,
+                       classes=1,
+                       decoder_attention_type="scse",
+                       activation='sigmoid').to(DEVICE)
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
         def get_parameters(self):
