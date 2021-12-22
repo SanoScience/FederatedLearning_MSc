@@ -1,8 +1,13 @@
+import logging
 import random
 from abc import ABC, abstractmethod
 from collections import defaultdict, Counter
 import os
 
+logger = logging.getLogger(__name__)
+hdlr = logging.StreamHandler()
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 class DataSelector(ABC):
     def __init__(self):
@@ -56,8 +61,8 @@ class IIDSelector(DataSelector):
         zipped = list(zip(sampled_images, sampled_masks))
         random.shuffle(zipped)
         sampled_images, sampled_masks = zip(*zipped)
-        print(f"Size of data: {len(sampled_images)}")
-        print(f"Distribution of data: {str(counter)}")
+        logger.info(f"Size of data: {len(sampled_images)}")
+        logger.info(f"Distribution of data: {str(counter)}")
         return sampled_images, sampled_masks
 
     def select_server_data(self, images, masks, labels_df):
@@ -76,7 +81,7 @@ class IIDSelector(DataSelector):
         counter = Counter()
         for l in labels:
             counter[l] += 1
-        print(f"Size of data: {len(test_imgs)}")
-        print(f"Distribution of data: {str(counter)}")
+        logger.info(f"Size of data: {len(test_imgs)}")
+        logger.info(f"Distribution of data: {str(counter)}")
 
         return test_imgs, test_masks
