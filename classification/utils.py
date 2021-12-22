@@ -167,9 +167,10 @@ def trim_ranges(l, r, bound):
     return l, r
 
 
-def generate_patch(masked_image, patient_id, patch_size=128):
-    # Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
-    #     os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/", f"{patient_id}.png"), 'PNG')
+def generate_patch(args, masked_image, patient_id, patch_size=224):
+    Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
+        os.path.join(RSNA_DATASET_PATH_BASE, f"masked_stage_2_train_images_{args.segmentation_size}/",
+                     f"{patient_id}.png"), 'PNG')
     w, h = masked_image.shape
     shift = patch_size // 2
 
@@ -178,12 +179,12 @@ def generate_patch(masked_image, patient_id, patch_size=128):
     y_filtered = []
 
     for t in zip(x, y):
-        if shift <= t[0] and t[0] < 512 - shift and shift <= t[1] and t[1] < 512 - shift:
+        if shift <= t[0] < args.segmenation_size - shift and shift <= t[1] < args.segmenation_size - shift:
             x_filtered.append(t[0])
             y_filtered.append(t[1])
     if len(x_filtered) == 0:
-        x_filtered = [256]
-        y_filtered = [256]
+        x_filtered = [args.segmenation_size // 2]
+        y_filtered = [args.segmenation_size // 2]
     i = np.random.randint(len(x_filtered))
     l_x, r_x = trim_ranges(x_filtered[i] - shift, x_filtered[i] + shift, w)
     l_y, r_y = trim_ranges(y_filtered[i] - shift, y_filtered[i] + shift, h)
@@ -342,7 +343,8 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/"),
+                        # default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
                         help="Path to the images")
     parser.add_argument("--labels",
                         type=str,
@@ -358,8 +360,9 @@ def parse_args():
                         help="Path to the file with test dataset files list")
     parser.add_argument("--segmentation_model",
                         type=str,
-                        default="/net/archive/groups/plggsano/fl_msc/unet_model",
+                        # default="/net/archive/groups/plggsano/fl_msc/unet_model",
                         # default="/Users/filip/Data/Studies/MastersThesis/unet_model",
+                        default="/net/archive/groups/plggsano/fl_msc/unet_14_jacc_0.906_loss_0.15",
                         help="Path to the file with segmentation model")
     parser.add_argument("--patches",
                         type=bool,
@@ -371,7 +374,8 @@ def parse_args():
                         help="number of patches generated for an image in client")
     parser.add_argument("--k_patches_server",
                         type=int,
-                        default=10,
+                        # default=10,
+                        default=1,
                         help="number of patches generated for an image in server")
     parser.add_argument("--in_channels",
                         type=int,
@@ -383,11 +387,11 @@ def parse_args():
                         help="Number of local epochs")
     parser.add_argument("--segmentation_size",
                         type=int,
-                        default=512,
+                        default=1024,
                         help="input image size in segmentation model")
     parser.add_argument("--size",
                         type=int,
-                        default=128,
+                        default=224,
                         help="input image size in classification model")
     parser.add_argument("--num_workers",
                         type=int,

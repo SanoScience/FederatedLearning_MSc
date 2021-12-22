@@ -14,6 +14,8 @@ from fl_covid_19_radiography_dataset import Covid19RDDataset
 from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_single_label, \
     get_test_transform_covid_19_rd, get_train_transform_covid_19_rd, test_single_label_patching
 import torchvision
+from segmentation_models_pytorch import UnetPlusPlus
+
 
 import sys
 
@@ -215,9 +217,11 @@ if __name__ == "__main__":
     LOCAL_EPOCHS = args.local_epochs
     BATCH_SIZE = args.batch_size
 
-    segmentation_model = UNet(input_channels=1,
-                              output_channels=64,
-                              n_classes=1).to(DEVICE)
+    # segmentation_model = UNet(input_channels=1,
+    #                           output_channels=64,
+    #                           n_classes=1).to(DEVICE)
+    segmentation_model = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
+
     segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 
     # Define strategy
