@@ -9,10 +9,9 @@ import torch
 from segmentation_models_pytorch import UnetPlusPlus
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
-from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
+from segmentation.common import get_state_dict, jaccard, validate, get_data_paths, get_model
 from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
-
 
 train_loader = None
 hdlr = logging.StreamHandler()
@@ -94,11 +93,8 @@ def main():
     clients_number = int(arguments[3])
 
     # Load model
-    net = UnetPlusPlus('resnet50',
-                       in_channels=1,
-                       classes=1,
-                       decoder_attention_type="scse",
-                       activation='sigmoid').to(DEVICE)
+    net = get_model().to(DEVICE)
+
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
         def get_parameters(self):

@@ -119,11 +119,7 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     logger.info("Parsing arguments")
 
     # Define model
-    net = UnetPlusPlus('resnet50',
-                       in_channels=1,
-                       classes=1,
-                       decoder_attention_type="scse",
-                       activation='sigmoid').to(DEVICE)
+    net = get_model().to(DEVICE)
 
     # Define strategy
     strategy = strategies[FED_AGGREGATION_STRATEGY](

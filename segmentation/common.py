@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 import torch
+from segmentation_models_pytorch import UnetPlusPlus
 
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
 
@@ -47,6 +48,13 @@ def validate(net, val_loader, device):
     val_loss = val_running_loss / len(val_loader)
     val_jac = val_running_jac / len(val_loader)
     return val_loss, val_jac
+
+
+def get_model():
+    return UnetPlusPlus('resnet50',
+                        in_channels=1,
+                        classes=1,
+                        activation='sigmoid')
 
 
 def jaccard(outputs, targets):
