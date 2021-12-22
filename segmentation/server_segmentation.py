@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 import os
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
-from segmentation.models.unet import UNet
 import shutil
 from segmentation_models_pytorch import UnetPlusPlus
 

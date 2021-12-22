@@ -3,9 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 from torch.utils.data import DataLoader
 from segmentation.common import *
-from segmentation.client_segmentation import IMAGE_SIZE
 from segmentation.data_loader import LungSegDataset
-from segmentation.models.unet import UNet
 import numpy as np
 
 

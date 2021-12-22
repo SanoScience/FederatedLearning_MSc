@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
 from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
-from segmentation.models.unet import UNet
 
 
 train_loader = None
