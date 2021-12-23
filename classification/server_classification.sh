@@ -3,6 +3,7 @@
 #SBATCH --output=%j_server.txt
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
+#SBATCH --ntasks-per-node=6
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1
 #SBATCH -A plgsano2

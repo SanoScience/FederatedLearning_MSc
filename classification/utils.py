@@ -288,7 +288,8 @@ def test_single_label_patching(model, device, logger, test_patching_dataset, cri
 
     model.eval()
     logger.info("Testing: ")
-    test_patching_loader = torch.utils.data.DataLoader(test_patching_dataset, batch_size=1, num_workers=0)
+    test_patching_loader = torch.utils.data.DataLoader(test_patching_dataset, batch_size=1, num_workers=4,
+                                                       pin_memory=True)
     test_preds_per_idx = defaultdict(list)
     test_labels_per_idx = dict()
 
@@ -395,7 +396,7 @@ def parse_args():
                         help="input image size in classification model")
     parser.add_argument("--num_workers",
                         type=int,
-                        default=0,
+                        default=4,
                         help="Number of workers for processing the data")
     parser.add_argument("--classes",
                         type=int,
