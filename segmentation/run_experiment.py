@@ -28,10 +28,11 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         split = squeue_output.split()
         status = split[4].decode('utf-8')
         job_id = split[0]
-        node = split[6]
+        node = split[7]
         print(f"{job_id}:{status}")
         time.sleep(10)
-    print("Starting all clients!")
+    print("Starting all clients in 20s!")
+    time.sleep(20)
     output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
 
