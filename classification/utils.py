@@ -95,17 +95,17 @@ def get_train_transform_covid_19_rd(args):
         # Converting images to the size that the model expects
         torchvision.transforms.Resize(size=(args.size, args.size)),
         torchvision.transforms.RandomHorizontalFlip(),  # A RandomHorizontalFlip to augment our data
-        torchvision.transforms.ColorJitter(
-            brightness=[0.8, 1.2],
-            contrast=[0.8, 1.2],
-            saturation=[0.8, 1.2],
-            hue=[-0.1, 0.1]
-        ),
+        # torchvision.transforms.ColorJitter(
+        #     brightness=[0.8, 1.2],
+        #     contrast=[0.8, 1.2],
+        #     saturation=[0.8, 1.2],
+        #     hue=[-0.1, 0.1]
+        # ),
         torchvision.transforms.RandomAffine(
-            degrees=[-90, 90],
-            translate=[0.2, 0.2],
-            scale=[1, 1.3],
-            shear=[-10, 10],
+            degrees=[-5, 5],
+            translate=[0.05, 0.05],
+            scale=[0.95, 1.05],
+            shear=[-5, 5],
         ),
         torchvision.transforms.ToTensor(),  # Converting to tensor
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
