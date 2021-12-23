@@ -19,7 +19,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     print('sbatch:', output)
     result = re.search('Submitted batch job (\d*)', output.decode('utf-8'))
     print(result.groups())
-    server_job_id = result
+    server_job_id = result.group(1)
     status = ''
     while status != 'R':
         ps = subprocess.Popen(('squeue',), stdout=subprocess.PIPE)
