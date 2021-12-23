@@ -51,7 +51,7 @@ def validate(net, val_loader, device):
 
 
 def get_model():
-    return UnetPlusPlus('resnet50',
+    return UnetPlusPlus('resnet34',
                         in_channels=1,
                         classes=1,
                         activation='sigmoid')
