@@ -14,7 +14,8 @@ parameters = {'local_epochs': [1, 2, 3, 4, 5],
 
 def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, backbone, rounds=15):
     output = subprocess.check_output(
-        ['sbatch', 'server.sh', clients_count, rounds, 'FedAvg', local_epochs, lr, batch_size, optimizer, ff])
+        ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr), str(batch_size),
+         optimizer, str(ff)])
     print('sbatch:', output)
     result = re.search('Submitted batch job (\d*)', output)
     print(result.groups())
@@ -30,7 +31,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         node = split[6]
         print(f"{job_id}:{status}")
         time.sleep(10)
-    output = subprocess.check_output(['./run_clients.sh', node, clients_count])
+    output = subprocess.check_output(['./run_clients.sh', node, str(clients_count)])
     print(output)
 
 
