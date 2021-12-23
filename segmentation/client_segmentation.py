@@ -80,7 +80,7 @@ def load_data(client_id, clients_number, batch_size, image_size):
                              mode="train",
                              labels=labels)
 
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8)
 
 
 def main():
