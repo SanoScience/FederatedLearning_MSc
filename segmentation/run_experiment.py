@@ -32,7 +32,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         print(f"{job_id}:{status}")
         time.sleep(10)
     print("Starting all clients!")
-    output = subprocess.check_output(['./run_clients.sh', node, str(clients_count)])
+    output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
 
 
