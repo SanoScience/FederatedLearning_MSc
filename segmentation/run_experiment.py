@@ -17,7 +17,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr), str(batch_size),
          optimizer, str(ff)])
     print('sbatch:', output)
-    result = re.search('Submitted batch job (\d*)', output.read().decode('utf-8'))
+    result = re.search('Submitted batch job (\d*)', output.decode('utf-8'))
     print(result.groups())
     server_job_id = result
     status = ''
