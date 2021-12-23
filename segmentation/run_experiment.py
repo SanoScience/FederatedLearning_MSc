@@ -26,7 +26,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
         ps.wait()
         split = squeue_output.split()
-        status = split[4]
+        status = split[4].decode('utf-8')
         job_id = split[0]
         node = split[6]
         print(f"{job_id}:{status}")
