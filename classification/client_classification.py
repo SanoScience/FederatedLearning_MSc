@@ -105,11 +105,11 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
             for batch_idx, (images, batch_labels) in enumerate(train_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 batch_labels = batch_labels.to(device=device)
+                optimizer.zero_grad()
 
                 logits = model(images)
                 loss = criterion(logits, batch_labels)
 
-                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
@@ -274,7 +274,6 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
         self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
@@ -287,7 +286,8 @@ class ClassificationRSNAClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        train_single_label(self.model, self.train_loader, self.criterion, self.optimizer, self.classes_names,
+        optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
+        train_single_label(self.model, self.train_loader, self.criterion, optimizer, self.classes_names,
                            epochs=args.local_epochs, K=args.k_patches_client)
         return self.get_parameters(), len(self.train_loader), {}
 
