@@ -93,8 +93,8 @@ class NIHStrategyFactory:
 class RSNAStrategyFactory:
     def __init__(self, args, segmentation_model=None):
         self.args = args
-        self.model = torchvision.models.resnet34(pretrained=True)
-        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
+        self.model = torchvision.models.resnet50(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=2048, out_features=args.classes)
         self.model = self.model.to(DEVICE)
         self.segmentation_model = segmentation_model
 
@@ -110,7 +110,7 @@ class RSNAStrategyFactory:
         classes_names = test_dataset.classes_names
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=3e-5)
+        optimizer = optim.Adam(model.parameters(), lr=1e-5)
 
         def evaluate(weights):
             global ROUND
@@ -122,14 +122,14 @@ class RSNAStrategyFactory:
             else:
                 test_acc, test_loss, report = test_single_label(model, DEVICE, logger, test_loader, criterion,
                                                                 optimizer, classes_names)
-            torch.save(model.state_dict(), f'rsna_resnet_34_patching_1024-{ROUND}')
+            torch.save(model.state_dict(), f'rsna_resnet_50_patching_1024-{ROUND}')
             loss.append(test_loss)
             acc.append(test_acc)
             reports.append(report)
 
             df = pd.DataFrame.from_dict(
                 {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'reports': reports})
-            df.to_csv(f"rsna_resnet_34_r_patching_1024_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
+            df.to_csv(f"rsna_resnet_50_r_patching_1024_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}.csv")
 
             ROUND += 1
             return test_loss, {"test_acc": test_acc}

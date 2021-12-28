@@ -266,15 +266,15 @@ class ClassificationNIHClient(fl.client.NumPyClient):
 class ClassificationRSNAClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number):
         # Load model
-        self.model = torchvision.models.resnet34(pretrained=True)
-        self.model.fc = torch.nn.Linear(in_features=512, out_features=args.classes)
+        self.model = torchvision.models.resnet50(pretrained=True)
+        self.model.fc = torch.nn.Linear(in_features=2048, out_features=args.classes)
         self.model.cuda()
 
         # Load data
         self.train_loader, self.test_loader, self.classes_names = load_data_RSNA(client_id, clients_number)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=3e-5)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
