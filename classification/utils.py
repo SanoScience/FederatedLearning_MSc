@@ -330,7 +330,7 @@ def test_single_label_patching(model, device, logger, test_patching_dataset, cri
     test_labels = [test_labels_per_idx[i] for i in range(len(test_patching_loader))]
     test_preds = [Counter(test_preds_per_idx[i]).most_common(n=1)[0][0] for i in range(len(test_patching_loader))]
 
-    test_acc = accuracy_score(test_preds, test_labels)
+    test_acc = accuracy_score(test_labels, test_preds)
 
     logger.info("Test report (with majority voting):")
     report_majority_voting = classification_report(test_labels, test_preds, target_names=classes_names)
@@ -344,7 +344,7 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images/"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_1024/"),
                         # default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
                         help="Path to the images")
     parser.add_argument("--labels",

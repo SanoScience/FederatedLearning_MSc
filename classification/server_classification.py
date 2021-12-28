@@ -143,7 +143,7 @@ class RSNAStrategyFactory:
             min_fit_clients=CLIENTS,
             min_available_clients=CLIENTS,
             eval_fn=self.get_eval_fn(self.model, self.args, logger),
-            initial_parameters=[val.cpu().numpy() for _, val in self.model.state_dict().items()]
+            initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in self.model.state_dict().items()])
         )
 
 

@@ -81,4 +81,6 @@ class RSNADataset(Dataset):
             image_rgb = generate_patch(self.args, image_l, self.ids_labels_df.iloc[idx]['patient_id'], patch_size=self.args.size)
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/{idx}.png', 'PNG')
+        else:
+            image_rgb = image.convert('RGB')
         return self.transform(image_rgb), self.labels[idx]
