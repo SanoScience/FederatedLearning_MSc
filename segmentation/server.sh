@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu
 #SBATCH -A plgsano2
-
+#SBATCH --ntasks-per-node=10
 #SBATCH --gres=gpu:1
 
 # args: 1. clients 2. rounds 3. aggregation strategy 4. local epochs

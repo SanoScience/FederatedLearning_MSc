@@ -66,7 +66,7 @@ def get_eval_fn(net):
                                   path_to_masks=masks_path,
                                   image_size=IMAGE_SIZE,
                                   mode="test", labels=labels)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=8, pin_memory=True)
 
     def evaluate(weights):
         global ROUND, MAX_ROUND
