@@ -171,24 +171,14 @@ def generate_patch(args, masked_image, patient_id, patch_size=224):
     # Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
     #     os.path.join(RSNA_DATASET_PATH_BASE, f"masked_stage_2_train_images_{args.segmentation_size}/",
     #                  f"{patient_id}.png"), 'PNG')
-    w, h = masked_image.shape
     shift = patch_size // 2
 
-    x, y = np.where(masked_image > 0.5)
-    x_filtered = []
-    y_filtered = []
-
-    for t in zip(x, y):
-        if shift <= t[0] < args.segmentation_size - shift and shift <= t[1] < args.segmentation_size - shift:
-            x_filtered.append(t[0])
-            y_filtered.append(t[1])
-    if len(x_filtered) == 0:
-        x_filtered = [args.segmentation_size // 2]
-        y_filtered = [args.segmentation_size // 2]
-    i = np.random.randint(len(x_filtered))
-    l_x, r_x = trim_ranges(x_filtered[i] - shift, x_filtered[i] + shift, w)
-    l_y, r_y = trim_ranges(y_filtered[i] - shift, y_filtered[i] + shift, h)
-    return Image.fromarray((255 * masked_image[l_x:r_x, l_y:r_y]).astype(np.int8), mode='L').convert('RGB')
+    x, y = np.nonzero(masked_image[shift:(args.segmentation_size - shift), shift:(args.segmentation_size - shift)])
+    i = np.random.randint(len(x))
+    # l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
+    # l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
+    return Image.fromarray((255 * masked_image[x[i]:(x[i] + patch_size), y[i]:(y[i] + patch_size)]).astype(np.int8),
+                           mode='L').convert('RGB')
 
 
 def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):

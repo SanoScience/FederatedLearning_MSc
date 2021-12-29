@@ -14,7 +14,7 @@ from fl_covid_19_radiography_dataset import Covid19RDDataset
 from utils import get_state_dict, get_test_transform_albu_NIH, test_NIH, parse_args, test_single_label, \
     get_test_transform_covid_19_rd, get_train_transform_covid_19_rd, test_single_label_patching
 import torchvision
-from segmentation_models_pytorch import UnetPlusPlus
+# from segmentation_models_pytorch import UnetPlusPlus
 
 
 import sys

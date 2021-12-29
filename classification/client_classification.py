@@ -34,8 +34,8 @@ logger.setLevel(logging.INFO)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-logger.info(f"Device: {device}")
-logger.info("CUDA_VISIBLE_DEVICES =" + str(os.environ['CUDA_VISIBLE_DEVICES']))
+# logger.info(f"Device: {device}")
+# logger.info("CUDA_VISIBLE_DEVICES =" + str(os.environ['CUDA_VISIBLE_DEVICES']))
 
 args = parse_args()
 
