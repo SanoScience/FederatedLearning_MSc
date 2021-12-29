@@ -174,11 +174,16 @@ def generate_patch(args, masked_image, patient_id, patch_size=224):
     shift = patch_size // 2
 
     x, y = np.nonzero(masked_image[shift:(args.segmentation_size - shift), shift:(args.segmentation_size - shift)])
-    i = np.random.randint(len(x))
-    # l_x, r_x = trim_ranges(x[i] - shift, x[i] + shift, w)
-    # l_y, r_y = trim_ranges(y[i] - shift, y[i] + shift, h)
-    return Image.fromarray((255 * masked_image[x[i]:(x[i] + patch_size), y[i]:(y[i] + patch_size)]).astype(np.int8),
-                           mode='L').convert('RGB')
+    if len(x) == 0:
+        return Image.fromarray((255 * masked_image[
+                                      (args.segmentation_size // 2 - shift):(args.segmentation_size // 2 + shift),
+                                      (args.segmentation_size // 2 - shift):(
+                                                  args.segmentation_size // 2 + shift)]).astype(np.int8),
+                               mode='L').convert('RGB')
+    else:
+        i = np.random.randint(len(x))
+        return Image.fromarray((255 * masked_image[x[i]:(x[i] + patch_size), y[i]:(y[i] + patch_size)]).astype(np.int8),
+                               mode='L').convert('RGB')
 
 
 def test_NIH(model, device, logger, test_loader, criterion, optimizer, scheduler, classes_names):
