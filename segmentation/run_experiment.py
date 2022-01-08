@@ -23,16 +23,21 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     status = ''
     while status != 'R':
         ps = subprocess.Popen(('squeue',), stdout=subprocess.PIPE)
-        squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
+        try:
+            squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
+        except Exception as e:
+            print("Retrying in 30 seconds. Error:", str(e))
+            time.sleep(30)
+            squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
         ps.wait()
         split = squeue_output.split()
         status = split[4].decode('utf-8')
         job_id = split[0]
         node = split[7]
         print(f"{job_id}:{status}")
-        time.sleep(10)
-    print("Starting all clients in 60s!")
-    time.sleep(60)
+        time.sleep(60)
+    print("Starting all clients in 100s!")
+    time.sleep(100)
     output = subprocess.check_output(['./v100_run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
 
