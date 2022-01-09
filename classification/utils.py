@@ -168,9 +168,9 @@ def trim_ranges(l, r, bound):
 
 
 def generate_patch(args, masked_image, patient_id, patch_size=224):
-    # Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
-    #     os.path.join(RSNA_DATASET_PATH_BASE, f"masked_stage_2_train_images_{args.segmentation_size}/",
-    #                  f"{patient_id}.png"), 'PNG')
+    Image.fromarray((255 * masked_image).astype(np.int8), mode='L').convert('RGB').save(
+        os.path.join(RSNA_DATASET_PATH_BASE, f"masked_stage_2_train_images_09_01_{args.segmentation_size}/",
+                     f"{patient_id}.png"), 'PNG')
     shift = patch_size // 2
 
     x, y = np.nonzero(masked_image[shift:(args.segmentation_size - shift), shift:(args.segmentation_size - shift)])
@@ -178,7 +178,7 @@ def generate_patch(args, masked_image, patient_id, patch_size=224):
         return Image.fromarray((255 * masked_image[
                                       (args.segmentation_size // 2 - shift):(args.segmentation_size // 2 + shift),
                                       (args.segmentation_size // 2 - shift):(
-                                                  args.segmentation_size // 2 + shift)]).astype(np.int8),
+                                              args.segmentation_size // 2 + shift)]).astype(np.int8),
                                mode='L').convert('RGB')
     else:
         i = np.random.randint(len(x))
@@ -339,8 +339,8 @@ def parse_args():
 
     parser.add_argument("--images",
                         type=str,
-                        default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_1024/"),
-                        # default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
+                        # default=os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_1024/"),
+                        default=os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
                         help="Path to the images")
     parser.add_argument("--labels",
                         type=str,
@@ -358,7 +358,8 @@ def parse_args():
                         type=str,
                         # default="/net/archive/groups/plggsano/fl_msc/unet_model",
                         # default="/Users/filip/Data/Studies/MastersThesis/unet_model",
-                        default="/net/archive/groups/plggsano/fl_msc/unet_14_jacc_0.906_loss_0.156",
+                        # default="/net/archive/groups/plggsano/fl_msc/unet_14_jacc_0.906_loss_0.156",
+                        default="/net/archive/groups/plggsano/fl_msc_classification/unet++_efficientnet-b4_r_15-c_3_bs_2_le_2_fs_FedAvg_mf_2_ff_0.75_do_False_o_Adagrad_lr_0.001_image_1024_IID",
                         help="Path to the file with segmentation model")
     parser.add_argument("--patches",
                         type=bool,
@@ -370,8 +371,8 @@ def parse_args():
                         help="number of patches generated for an image in client")
     parser.add_argument("--k_patches_server",
                         type=int,
-                        default=10,
-                        # default=1,
+                        # default=10,
+                        default=1,
                         help="number of patches generated for an image in server")
     parser.add_argument("--in_channels",
                         type=int,
