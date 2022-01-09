@@ -78,6 +78,7 @@ test_patching_loader = torch.utils.data.DataLoader(rsna_dataset, batch_size=1, n
 
 segmentation_model.eval()
 for image_idx, (image, batch_label) in enumerate(test_patching_loader):
+    image = image.to(DEVICE)
     with torch.no_grad():
         outputs_mask = segmentation_model(image)
 
