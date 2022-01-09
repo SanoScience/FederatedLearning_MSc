@@ -16,7 +16,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
-SEGMENTATION_MODEL = "/net/archive/groups/plggsano/fl_msc_classification/unet++_efficientnet-b4_r_15-c_3_bs_2_le_2_fs_FedAvg_mf_2_ff_0.75_do_False_o_Adagrad_lr_0.001_image_1024_IID"
+SEGMENTATION_MODEL = "/net/archive/groups/plggsano/fl_msc_classification/unet++_efficientnet-b4_r_15-c_3_bs_2_le_2_fs_FedAvg_mf_2_ff_0.75_do_False_o_Adagrad_lr_0.001_image_1024_IID/best_model/unet_14_jacc_0.923_loss_0.118"
 IMAGES_DIR = os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images/"),
 LABELS = os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv"),
 
