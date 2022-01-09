@@ -22,14 +22,21 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     server_job_id = result.group(1)
     status = ''
     while status != 'R':
-        ps = subprocess.Popen(('squeue',), stdout=subprocess.PIPE)
-        try:
-            squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
-        except Exception as e:
-            print("Retrying in 30 seconds. Error:", str(e))
-            time.sleep(30)
-            squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
-        ps.wait()
+        squeue_output = None
+        attempts = 5
+        while attempts:
+            try:
+                ps = subprocess.Popen(('squeue',), stdout=subprocess.PIPE)
+                squeue_output = subprocess.check_output(('grep', server_job_id), stdin=ps.stdout)
+                ps.wait()
+                attempts = 0
+            except Exception as e:
+                print("Retrying in 30 seconds. Error:", str(e))
+                time.sleep(30)
+                attempts -= 1
+        if not squeue_output:
+            raise Exception("Couldn't extract the server's job id")
+
         split = squeue_output.split()
         status = split[4].decode('utf-8')
         job_id = split[0]
@@ -40,8 +47,10 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(100)
     output = subprocess.check_output(['./v100_run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
+    print("Starting next job in 1 hour.")
+    time.sleep(3600)
 
 
-for le in [1, 2, 3]:
+for le in [2, 3]:
     for mf in [1, 2, 3]:
         run_single_experiment(le, 2, clients_count=3, ff=0.3, lr=0.001, optimizer='Adagrad', mf=mf)
