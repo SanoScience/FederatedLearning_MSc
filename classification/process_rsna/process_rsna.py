@@ -61,8 +61,12 @@ class RSNADataset(Dataset):
         image_rgb.save(
             f'/net/scratch/people/plgfilipsl/fl_msc/classification/RSNA/stage_2_train_images_09_01_png/{patient_id}.png',
             'PNG')
-        resize_transform = torchvision.transforms.Resize(size=(1024, 1024))
-        return resize_transform(image_rgb), self.labels[idx]
+        image_l = image_rgb.convert("L")
+        trans = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(size=(1024, 1024)),
+            torchvision.transforms.ToTensor(),
+        ])
+        return trans(image_l), self.labels[idx]
 
 
 segmentation_model = UnetPlusPlus('efficientnet-b4', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
