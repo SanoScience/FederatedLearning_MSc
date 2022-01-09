@@ -221,7 +221,7 @@ if __name__ == "__main__":
                               output_channels=64,
                               n_classes=1).to(DEVICE)
     # segmentation_model = None
-    segmentation_model = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
+    segmentation_model = UnetPlusPlus('efficientnet-b4', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
 
     segmentation_model.load_state_dict(torch.load(args.segmentation_model, map_location=torch.device('cpu')))
 

@@ -74,11 +74,12 @@ class RSNADataset(Dataset):
         # image = Image.open(image_path).convert('L')
         # image_l = np.array(image) / 255
         # image_rgb = None
+        patient_id = self.ids_labels_df.iloc[idx]['patient_id']
         if self.args.patches:
-            # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/original_{idx}.png', 'PNG')
+            image_rgb.save(f'/net/scratch/people/plgfilipsl/fl_msc/classification/RSNA/stage_2_train_images_09_01_png/{patient_id}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/original_{idx}.png', 'PNG')
             image_rgb = make_patch(self.args, self.segmentation_model, image_rgb,
-                                   self.ids_labels_df.iloc[idx]['patient_id'])
+                                   patient_id)
             # image_rgb = generate_patch(self.args, image_l, self.ids_labels_df.iloc[idx]['patient_id'], patch_size=self.args.size)
             # image_rgb.save(f'/net/scratch/people/plgfilipsl/tmp_patches/{idx}.png', 'PNG')
             # image_rgb.save(f'/Users/filip/Data/Studies/MastersThesis/tmp_patches/{idx}.png', 'PNG')
