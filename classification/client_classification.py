@@ -56,10 +56,10 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
             preds.append(top_class)
 
             if batch_idx % 10 == 0:
-                LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}\n"
-                            f" Loss: {running_loss / len(train_loader):.4f}\n"
-                            f" Acc: {running_accuracy / len(train_loader):.4f}\n"
-                            f" Time: {time.time() - start_time_epoch:2f}\n")
+                LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                            f" Loss: {running_loss / len(train_loader):.4f}"
+                            f" Acc: {running_accuracy / len(train_loader):.4f}"
+                            f" Time: {time.time() - start_time_epoch:2f}")
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
         LOGGER.info("Training report:")
@@ -109,7 +109,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
         d_name = config["dataset_type"]
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.0001)
+        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.000001)
 
         if not self.train_loader:
             self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
