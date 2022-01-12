@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --output=%j_server.txt
-#SBATCH --time=4:00:00
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=9
 #SBATCH -p plgrid-gpu
