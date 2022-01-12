@@ -227,6 +227,11 @@ def get_model(m, classes=3):
         model.fc = torch.nn.Linear(in_features=2048, out_features=classes)
         model = model.to(DEVICE)
         return model
+    if m == 'DenseNet121':
+        model = torchvision.models.densenet121(pretrained=True)
+        model.classifier = torch.nn.Linear(in_features=1024, out_features=classes)
+        model = model.to(DEVICE)
+        return model
 
 
 def get_data_paths(dataset):
