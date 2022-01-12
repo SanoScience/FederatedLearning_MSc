@@ -106,7 +106,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
         batch_size = int(config["batch_size"])
         epochs = int(config["local_epochs"])
         lr = float(config["learning_rate"])
-        d_name = config["dataet_type"]
+        d_name = config["dataset_type"]
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.0001)
