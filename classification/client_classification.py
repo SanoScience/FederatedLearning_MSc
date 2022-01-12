@@ -110,7 +110,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
         d_name = config["dataset_type"]
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.000001)
+        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
 
         if not self.train_loader:
             self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
