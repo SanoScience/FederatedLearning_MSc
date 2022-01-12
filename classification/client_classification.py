@@ -75,6 +75,7 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
 def load_data(client_id, clients_number, d_name, bs):
     if 'rsna' in d_name:
         images_dir, train_subset, _ = get_data_paths(d_name)
+        LOGGER.info(f"images_dir: {images_dir}")
         train_transform = get_train_transform_rsna(IMAGE_SIZE)
         train_dataset = RSNADataset(client_id, clients_number, train_subset, images_dir, transform=train_transform,
                                     limit=LIMIT)

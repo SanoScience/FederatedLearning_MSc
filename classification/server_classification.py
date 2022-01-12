@@ -71,6 +71,7 @@ class SingleLabelStrategyFactory:
     def get_eval_fn(self, model):
         test_transform = get_test_transform_rsna(IMAGE_SIZE)
         images_dir, _, test_subset = get_data_paths(self.d)
+        LOGGER.info(f"images_dir: {images_dir}")
 
         if 'rsna' in self.d:
             test_dataset = RSNADataset(-1, self.c, test_subset, images_dir, transform=test_transform, limit=LIMIT)
