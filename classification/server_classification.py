@@ -45,7 +45,6 @@ times = []
 def fit_config(rnd: int):
     config = {
         "batch_size": BATCH_SIZE,
-        "image_size": IMAGE_SIZE,
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
         "dataset_type": DATASET_TYPE

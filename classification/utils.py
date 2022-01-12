@@ -83,10 +83,10 @@ def get_train_transformation_albu_NIH(height, width):
     ])
 
 
-def get_train_transform_covid_19_rd(args):
+def get_train_transform_rsna(img_size):
     return torchvision.transforms.Compose([
         # Converting images to the size that the model expects
-        torchvision.transforms.Resize(size=(args.size, args.size)),
+        torchvision.transforms.Resize(size=(img_size, img_size)),
         torchvision.transforms.RandomHorizontalFlip(),  # A RandomHorizontalFlip to augment our data
         # torchvision.transforms.ColorJitter(
         #     brightness=[0.8, 1.2],
@@ -266,9 +266,9 @@ def test_single_label(model, device, logger, test_loader, criterion, classes_nam
             test_preds.append(top_class)
 
             if batch_idx % 50 == 0:
-                logger.info(f"batch_idx: {batch_idx}"
-                            f"running_loss: {test_running_loss / (batch_idx + 1):.4f}"
-                            f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}")
+                logger.info(f"batch_idx: {batch_idx}\n"
+                            f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n"
+                            f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}\n\n")
 
     test_preds = torch.cat(test_preds, dim=0).tolist()
     test_labels = torch.cat(test_labels, dim=0).tolist()
