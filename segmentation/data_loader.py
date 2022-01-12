@@ -42,11 +42,11 @@ class LungSegDataset(Dataset):
         selector = IIDSelector()
         imgs = sorted(glob.glob(self.path_to_images + "/*.jpeg"), key=get_key)
         masks = sorted(glob.glob(self.path_to_masks + "/*.png"), key=get_key)
-        labels_dict = pd.read_csv(labels).set_index('filename').to_dict()['class']
+        labels_df = pd.read_csv(labels)
         if mode == 'test':
-            self.images, self.masks = selector.select_server_data(imgs, masks, labels_dict)
+            self.images, self.masks = selector.select_server_data(imgs, masks, labels_df)
         else:
-            self.images, self.masks = selector.select_client_data(imgs, masks, client_id, clients_number, labels_dict)
+            self.images, self.masks = selector.select_client_data(imgs, masks, client_id, clients_number, labels_df)
 
     def __getitem__(self, x) -> (torch.Tensor, torch.Tensor):
         """

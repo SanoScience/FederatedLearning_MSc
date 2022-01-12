@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 import os
 from segmentation.common import *
 from segmentation.data_loader import LungSegDataset
-from segmentation.models.unet import UNet
 import shutil
 from segmentation_models_pytorch import UnetPlusPlus
 
@@ -18,13 +17,13 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 512
+IMAGE_SIZE = 1024
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
 LOCAL_EPOCHS = 1
-MIN_FIT_CLIENTS = 2
-FRACTION_FIT = 0.75
+MIN_FIT_CLIENTS = 1
+FRACTION_FIT = 0.3
 TIME_BUDGET = 60
 LEARNING_RATE = 0.001
 
@@ -57,8 +56,8 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'unet++_resnet34_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
-           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID '
+    return f'unet++_efficientnet-b4_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
 
 
 def get_eval_fn(net):
@@ -67,7 +66,7 @@ def get_eval_fn(net):
                                   path_to_masks=masks_path,
                                   image_size=IMAGE_SIZE,
                                   mode="test", labels=labels)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=8, pin_memory=True)
 
     def evaluate(weights):
         global ROUND, MAX_ROUND
@@ -117,14 +116,11 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     LEARNING_RATE = lr
     OPTIMIZER_NAME = o
 
-    logger.info("Parsing arguments")
+    logger.info(
+        f"Configuration: le={LOCAL_EPOCHS}, clients={CLIENTS}, rounds={MAX_ROUND}, mf={MIN_FIT_CLIENTS}, ff={FRACTION_FIT}, bs={BATCH_SIZE}, lr={LEARNING_RATE}, opt={OPTIMIZER_NAME}")
 
     # Define model
-    # net = UNet(input_channels=1,
-    #            output_channels=64,
-    #            n_classes=1).to(DEVICE)
-
-    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
+    net = get_model().to(DEVICE)
 
     # Define strategy
     strategy = strategies[FED_AGGREGATION_STRATEGY](

@@ -7,14 +7,11 @@ import flwr as fl
 import numpy as np
 import torch
 from segmentation_models_pytorch import UnetPlusPlus
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
-from segmentation.common import get_state_dict, jaccard, validate, get_data_paths
+from segmentation.common import get_state_dict, jaccard, validate, get_data_paths, get_model
 from segmentation.data_loader import LungSegDataset
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
-from segmentation.models.unet import UNet
-
 
 train_loader = None
 hdlr = logging.StreamHandler()
@@ -83,7 +80,7 @@ def load_data(client_id, clients_number, batch_size, image_size):
                              mode="train",
                              labels=labels)
 
-    return DataLoader(dataset, batch_size=batch_size)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
 
 
 def main():
@@ -96,7 +93,7 @@ def main():
     clients_number = int(arguments[3])
 
     # Load model
-    net = UnetPlusPlus('resnet34', in_channels=1, classes=1, activation='sigmoid').to(DEVICE)
+    net = get_model().to(DEVICE)
 
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):

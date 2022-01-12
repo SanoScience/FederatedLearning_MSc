@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import os
 from collections import Counter, defaultdict
+from sklearn.model_selection import train_test_split
 
 path_to_jsons = "/Users/przemyslawjablecki/Downloads/all-images"
 classes = ['COVID-19', 'No Finding', 'Undefined Pneumonia', 'No Pneumonia (healthy)', 'Varicella',
@@ -68,9 +69,33 @@ for f in files:
             label_dict['class'].append(a)
 
 print(c)
-df = pd.DataFrame.from_dict(label_dict)
+
+X = label_dict['filename']
+y = label_dict['class']
+x_train, x_test, y_train, y_test = train_test_split(X, y,
+                                                    test_size=0.1,
+                                                    random_state=42,
+                                                    stratify=y)
+split_dict = defaultdict(list)
+for f, cls in zip(x_train, y_train):
+    split_dict['filename'].append(f)
+    split_dict['class'].append(cls)
+    split_dict['train'].append(True)
+for f, cls in zip(x_test, y_test):
+    split_dict['filename'].append(f)
+    split_dict['class'].append(cls)
+    split_dict['train'].append(False)
+
+df = pd.DataFrame.from_dict(split_dict)
+
 print(df.head())
 df.to_csv('labels.csv')
+df = pd.read_csv('labels.csv')
 
+for index, row in df.iterrows():
+    print(row['class'], row['filename'], row['train'])
+    print(type(row['train']))
+    print(row['train'] == True)
+    print(row['train'] == False)
+    break
 
-print(pd.read_csv('labels.csv').set_index('filename').to_dict())
