@@ -124,14 +124,14 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
 
 @click.command()
 @click.option('--sa', default='', type=str, help='Server address')
-@click.option('--id', default=0, type=int, help='Client id')
+@click.option('--c_id', default=0, type=int, help='Client id')
 @click.option('--c', default=1, type=int, help='Clients number')
 @click.option('--m', default='ResNet50', type=str, help='Model used for training')
-def run_client(sa, client_id, c, m):
+def run_client(sa, c_id, c, m):
     # Start client
     LOGGER.info("Connecting to:" + f"{sa}:8087")
     fl.client.start_numpy_client(f"{sa}:8087",
-                                 client=SingleLabelClassificationClient(client_id, c, m))
+                                 client=SingleLabelClassificationClient(c_id, c, m))
 
 
 if __name__ == "__main__":
