@@ -57,8 +57,8 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
 
             if batch_idx % 10 == 0:
                 LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                            f" Loss: {running_loss / len(train_loader):.4f}"
-                            f" Acc: {running_accuracy / len(train_loader):.4f}"
+                            f" Loss: {running_loss / (batch_idx + 1):.4f}"
+                            f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
         preds = torch.cat(preds, dim=0).tolist()
         labels = torch.cat(labels, dim=0).tolist()
