@@ -106,15 +106,10 @@ for image_path_tuple in images:
     fig3 = axarr[2].imshow(vis3)
     fig4 = axarr[3].imshow(vis4)
 
-    fig1.axes.get_xaxis().set_visible(False)
-    fig1.axes.get_yaxis().set_visible(False)
-    fig2.axes.get_xaxis().set_visible(False)
-    fig2.axes.get_yaxis().set_visible(False)
-    fig3.axes.get_xaxis().set_visible(False)
-    fig3.axes.get_yaxis().set_visible(False)
-    fig4.axes.get_xaxis().set_visible(False)
-    fig4.axes.get_yaxis().set_visible(False)
-    # plt.imshow(vis1)
+    figs = [fig1, fig2, fig3, fig4]
+    for f in figs:
+        f.axes.get_xaxis().set_visible(False)
+        f.axes.get_yaxis().set_visible(False)
     plt.show()
 
 et = time.time()
