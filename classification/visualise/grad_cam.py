@@ -1,6 +1,6 @@
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
-from torchvision.models import resnet50
+from torchvision.models import resnet50, densenet121
 import torch
 import torchvision
 from torch.autograd import Variable
@@ -11,49 +11,92 @@ import PIL
 import time
 
 st = time.time()
+device = torch.device('cpu')
 
-model = resnet50(pretrained=True)
-model.fc = torch.nn.Linear(in_features=2048, out_features=3)
-model.load_state_dict(torch.load('./ResNet50_9_acc_0.747_loss_0.61', map_location=torch.device('cpu')))
-# model.load_state_dict(torch.load('./ResNet50_5_acc_0.734_loss_0.607', map_location=torch.device('cpu')))
 
-target_layer = model.layer4[-1]
-print(target_layer)
-cam = GradCAM(model=model, target_layers=[target_layer], use_cuda=False)
+def get_resnet_cam(model_path):
+    model = resnet50(pretrained=True)
+    model.fc = torch.nn.Linear(in_features=2048, out_features=3)
+    model.load_state_dict(
+        torch.load(model_path, map_location=device))
+    target_layer_resnet = model.layer4[-1]
+    cam = GradCAM(model=model, target_layers=[target_layer_resnet], use_cuda=False)
+    return cam
 
-# image_rgb = PIL.Image.open('./Lung_Opacity-1.png').convert('RGB')
-# image_rgb = PIL.Image.open('./Lung_Opacity-210.png').convert('RGB')
-# image_rgb = PIL.Image.open('./Normal-1.png').convert('RGB')
-image_rgb = PIL.Image.open('./original-ffc01e64-ba14-4620-8016-235fc1609767.png').convert('RGB')
-# image_rgb = PIL.Image.open('./ffc01e64-ba14-4620-8016-235fc1609767.png').convert('RGB')
-# image_rgb = PIL.Image.open('./002cb550-2e31-42f1-a29d-fbc279977e71.png').convert('RGB')
-# image_rgb = PIL.Image.open('./masked.png').convert('RGB')
 
-convert = torchvision.transforms.Compose([
-    torchvision.transforms.Resize(size=(224, 224)),
-    torchvision.transforms.ToTensor(),
-    # Normalize to ImageNet
-    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-])
+def get_densenet_cam(model_path):
+    model = densenet121(pretrained=True)
+    model.classifier = torch.nn.Linear(in_features=1024, out_features=3)
+    model.load_state_dict(
+        torch.load(model_path, map_location=device))
+    target_layer_densenet = model.features[-1]
+    cam = GradCAM(model=model, target_layers=[target_layer_densenet], use_cuda=False)
+    return cam
 
-input_tensor = convert(image_rgb).float()
 
-v = Variable(input_tensor, requires_grad=True)
-v = v.unsqueeze(0)
+def get_image(path):
+    return PIL.Image.open(path).convert('RGB')
 
-grayscale_cam = cam(input_tensor=v)
 
-res_conv = torchvision.transforms.Resize(size=(224, 224))
+def convert_img(image_rgb):
+    convert = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(size=(224, 224)),
+        torchvision.transforms.ToTensor(),
+        # Normalize to ImageNet
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+    ])
 
-image_rgb = res_conv(image_rgb)
+    input_tensor = convert(image_rgb).float()
 
-img_np = np.array(image_rgb) / 255
+    v = Variable(input_tensor, requires_grad=True)
+    v = v.unsqueeze(0)
+    return v
 
-visualization = show_cam_on_image(img_np, grayscale_cam[0], use_rgb=True)
-plt.imshow(visualization)
-plt.show()
+
+def get_visualization(path_to_image, cam_obj):
+    image_rgb = get_image(path_to_image)
+    grayscale_cam = cam_obj(input_tensor=convert_img(image_rgb))
+    res_conv = torchvision.transforms.Resize(size=(224, 224))
+    image_rgb = res_conv(image_rgb)
+    img_np = np.array(image_rgb) / 255
+    visualization = show_cam_on_image(img_np, grayscale_cam[0], use_rgb=True)
+    return visualization
+
+
+images = [('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/segmented.png',
+           '/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/full.png')]
+
+for image_path_tuple in images:
+    image_path_segmented, image_path_full = image_path_tuple
+    cam_resnet_segmented = get_resnet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_segmented')
+    cam_resnet_full = get_resnet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_full')
+    cam_densenet_segmented = get_densenet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_segmented')
+    cam_densenet_full = get_densenet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_full')
+    vis1 = get_visualization(image_path_segmented, cam_resnet_segmented)
+    vis2 = get_visualization(image_path_full, cam_resnet_full)
+    vis3 = get_visualization(image_path_segmented, cam_densenet_segmented)
+    vis4 = get_visualization(image_path_full, cam_densenet_full)
+    plt.figure()
+    plt.axis('off')
+    f, axarr = plt.subplots(1, 4)
+
+    fig1 = axarr[0].imshow(vis1)
+    fig2 = axarr[1].imshow(vis2)
+    fig3 = axarr[2].imshow(vis3)
+    fig4 = axarr[3].imshow(vis4)
+
+    fig1.axes.get_xaxis().set_visible(False)
+    fig1.axes.get_yaxis().set_visible(False)
+    fig2.axes.get_xaxis().set_visible(False)
+    fig2.axes.get_yaxis().set_visible(False)
+    fig3.axes.get_xaxis().set_visible(False)
+    fig3.axes.get_yaxis().set_visible(False)
+    fig4.axes.get_xaxis().set_visible(False)
+    fig4.axes.get_yaxis().set_visible(False)
+    # plt.imshow(vis1)
+    plt.show()
 
 et = time.time()
 
-print(et-st)
+print(et - st)
