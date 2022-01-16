@@ -21,7 +21,7 @@ def get_resnet_cam(model_path):
         torch.load(model_path, map_location=device))
     target_layer_resnet = model.layer4[-1]
     cam = GradCAM(model=model, target_layers=[target_layer_resnet], use_cuda=False)
-    return cam
+    return cam, model
 
 
 def get_densenet_cam(model_path):
@@ -31,7 +31,7 @@ def get_densenet_cam(model_path):
         torch.load(model_path, map_location=device))
     target_layer_densenet = model.features[-1]
     cam = GradCAM(model=model, target_layers=[target_layer_densenet], use_cuda=False)
-    return cam
+    return cam, model
 
 
 def get_image(path):
@@ -56,7 +56,8 @@ def convert_img(image_rgb):
 
 def get_visualization(path_to_image, cam_obj):
     image_rgb = get_image(path_to_image)
-    grayscale_cam = cam_obj(input_tensor=convert_img(image_rgb))
+    converted_img = convert_img(image_rgb)
+    grayscale_cam = cam_obj(input_tensor=converted_img)
     res_conv = torchvision.transforms.Resize(size=(224, 224))
     image_rgb = res_conv(image_rgb)
     img_np = np.array(image_rgb) / 255
@@ -69,10 +70,29 @@ images = [('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/segm
 
 for image_path_tuple in images:
     image_path_segmented, image_path_full = image_path_tuple
-    cam_resnet_segmented = get_resnet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_segmented')
-    cam_resnet_full = get_resnet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_full')
-    cam_densenet_segmented = get_densenet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_segmented')
-    cam_densenet_full = get_densenet_cam('/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_full')
+    cam_resnet_segmented, resnet_segmented = get_resnet_cam(
+        '/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_segmented')
+    cam_resnet_full, resnet_full = get_resnet_cam(
+        '/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/ResNet50_full')
+    cam_densenet_segmented, densenet_segmented = get_densenet_cam(
+        '/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_segmented')
+    cam_densenet_full, densenet_full = get_densenet_cam(
+        '/Users/przemyslawjablecki/PycharmProjects/FederatedLearning_MSc/DenseNet121_full')
+
+    converted_img_segmented = convert_img(get_image(image_path_segmented))
+    converted_img_full = convert_img(get_image(image_path_full))
+
+    pred1 = np.argmax(resnet_segmented(converted_img_segmented).detach().numpy())
+    pred2 = np.argmax(densenet_segmented(converted_img_segmented).detach().numpy())
+    pred3 = np.argmax(resnet_full(converted_img_full).detach().numpy())
+    pred4 = np.argmax(densenet_full(converted_img_full).detach().numpy())
+
+    print(pred1, pred2, pred3, pred4)
+    pred_set = set([pred1, pred2, pred3, pred4])
+    if len(pred_set) != 1:
+        continue
+    classes = ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
+    print("Predicted class: ", classes[pred1])
     vis1 = get_visualization(image_path_segmented, cam_resnet_segmented)
     vis2 = get_visualization(image_path_full, cam_resnet_full)
     vis3 = get_visualization(image_path_segmented, cam_densenet_segmented)
