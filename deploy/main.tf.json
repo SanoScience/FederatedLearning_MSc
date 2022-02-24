@@ -3,8 +3,8 @@
     "google": [
       {
         "project": "sano-332607",
-        "region": "europe-central2",
-        "zone": "europe-central2-a"
+        "region": "us-central1",
+        "zone": "us-central1-a"
       }
     ]
   },
@@ -19,7 +19,7 @@
         {
           "subnet_name": "flower-subnet",
           "subnet_ip": "10.10.10.0/24",
-          "subnet_region": "europe-central2"
+          "subnet_region": "us-central1"
         }
       ],
       "routes": [
@@ -66,7 +66,7 @@
         "zone": "us-central1-a",
         "boot_disk": {
           "initialize_params": {
-            "image": "fl-msc-image-v1"
+            "image": "projects/sano-332607/global/images/fl-msc-image-v1"
           }
         },
         "network_interface": {
