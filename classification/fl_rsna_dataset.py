@@ -42,4 +42,4 @@ class RSNADataset(Dataset):
     def __getitem__(self, idx):
         image_path = self.images[idx]
         image = Image.open(image_path).convert('RGB')
-        return self.transform(image), self.labels[idx]
+        return self.transform(image) if self.transform else image, self.labels[idx]
