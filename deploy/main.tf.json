@@ -81,6 +81,9 @@
             "count": "1"
           }
         ],
+        "scheduling": {
+          "on_host_maintenance": "TERMINATE"
+        },
         "metadata_startup_script": "#!/bin/bash\n\necho hello"
       }
     }
