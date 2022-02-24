@@ -3,13 +3,13 @@
 #SBATCH --output=%j_client.txt
 #SBATCH --time=6:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=9
+#SBATCH --ntasks-per-node=24
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1
 #SBATCH -A plgsano2
 
 
-source ~/python3_6/bin/activate
+conda activate ffcv
 module load plgrid/apps/cuda/11.0
 
 echo $1 $2 $3 $4

@@ -15,3 +15,6 @@ class IIDSelector(DataSelector):
         sampled_images = [path for i, path in enumerate(images) if i % number_of_clients == client_id]
         sampled_labels = [label for i, label in enumerate(labels) if i % number_of_clients == client_id]
         return sampled_images, sampled_labels
+
+    def get_ids(self, dataset_len, client_id, number_of_clients):
+        return [i for i in range(dataset_len) if i % number_of_clients == client_id]

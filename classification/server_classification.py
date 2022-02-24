@@ -9,8 +9,13 @@ import time
 import os
 import shutil
 
+from ffcv.loader import Loader, OrderOption
+from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Normalize
+from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
+
 from fl_rsna_dataset import RSNADataset
-from utils import get_state_dict, test_single_label, get_test_transform_rsna, get_data_paths, get_model
+from utils import get_state_dict, test_single_label, get_test_transform_rsna, get_data_paths, get_model, \
+    RSNA_DATASET_PATH_BASE
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -76,7 +81,25 @@ class SingleLabelStrategyFactory:
         if 'rsna' in self.d:
             test_dataset = RSNADataset(-1, self.c, test_subset, images_dir, transform=test_transform, limit=LIMIT)
 
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.bs, num_workers=8, pin_memory=True)
+        # Random resized crop
+        decoder = RandomResizedCropRGBImageDecoder((224, 224))
+
+        # Data decoding and augmentation
+        image_pipeline = [decoder, Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensor(),
+                          ToTorchImage(), ToDevice(DEVICE)]
+        label_pipeline = [IntDecoder(), ToTensor(), ToDevice(DEVICE)]
+
+        # Pipeline for each data field
+        pipelines = {
+            'image': image_pipeline,
+            'label': label_pipeline
+        }
+
+        dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'test.beton')
+        # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
+        test_loader = Loader(dataset_path, batch_size=BATCH_SIZE, num_workers=24, order=OrderOption.SEQEUNTIAL,
+                             pipelines=pipelines)
+
         classes_names = test_dataset.classes_names
 
         criterion = nn.CrossEntropyLoss()
