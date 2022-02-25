@@ -91,6 +91,7 @@ def test_single_label(model, device, logger, test_loader, criterion, classes_nam
         for batch_idx, (image, batch_label) in enumerate(test_loader):
             # image = image.to(device=device, dtype=torch.float32)
             # batch_label = batch_label.to(device=device)
+            batch_label = torch.flatten(batch_label)
 
             logits = model(image)
             loss = criterion(logits, batch_label)

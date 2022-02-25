@@ -4,13 +4,14 @@ import logging
 import torch
 import torch.nn as nn
 import pandas as pd
+import numpy as np
 import click
 import time
 import os
 import shutil
 
 from ffcv.loader import Loader, OrderOption
-from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Normalize
+from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, NormalizeImage, Convert
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
 
 from fl_rsna_dataset import RSNADataset
@@ -85,7 +86,7 @@ class SingleLabelStrategyFactory:
         decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
         # Data decoding and augmentation
-        image_pipeline = [decoder, Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensor(),
+        image_pipeline = [decoder, ToTensor(), Convert(target_dtype=torch.float32),
                           ToTorchImage(), ToDevice(DEVICE)]
         label_pipeline = [IntDecoder(), ToTensor(), ToDevice(DEVICE)]
 
@@ -95,9 +96,9 @@ class SingleLabelStrategyFactory:
             'label': label_pipeline
         }
 
-        dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'test.beton')
+        dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'test-jpg90.beton')
         # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
-        test_loader = Loader(dataset_path, batch_size=BATCH_SIZE, num_workers=24, order=OrderOption.SEQEUNTIAL,
+        test_loader = Loader(dataset_path, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
                              pipelines=pipelines)
 
         classes_names = test_dataset.classes_names

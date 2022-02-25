@@ -3,12 +3,17 @@
 #SBATCH --output=%j_server.txt
 #SBATCH --time=6:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
+#SBATCH --ntasks-per-node=12
+#SBATCH --cpus-per-task=1
+#SBATCH -n 12
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1
 #SBATCH -A plgsano2
 
+source ~/anaconda3/etc/profile.d/conda.sh
+
 conda activate ffcv
+which python
 module load plgrid/apps/cuda/11.0
 
 echo $SLURM_JOB_NODELIST
