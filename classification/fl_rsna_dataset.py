@@ -17,7 +17,7 @@ class RSNADataset(Dataset):
 
         self.ids_labels_df = pd.read_csv(ids_labels_file)
 
-        extension = '.png'
+        extension = '.jpg'
 
         # IMAGES
         self.images = [os.path.join(images_source, row['patient_id']) + extension for _, row in
@@ -41,5 +41,5 @@ class RSNADataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.images[idx]
-        image = Image.open(image_path).convert('RGB')
+        image = Image.open(image_path)
         return self.transform(image) if self.transform else image, self.labels[idx]

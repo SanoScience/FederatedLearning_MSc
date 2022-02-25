@@ -74,7 +74,7 @@ def get_data_paths(dataset):
         train_subset = os.path.join(RSNA_DATASET_PATH_BASE, "train_labels_stage_1.csv")
         test_subset = os.path.join(RSNA_DATASET_PATH_BASE, "test_labels_stage_1.csv")
         if dataset == 'rsna-full':
-            images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images_09_01_png/")
+            images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images_jpg/")
         else:
             images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_09_01_1024/")
         return images_dir, train_subset, test_subset

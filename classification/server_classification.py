@@ -82,24 +82,25 @@ class SingleLabelStrategyFactory:
         if 'rsna' in self.d:
             test_dataset = RSNADataset(-1, self.c, test_subset, images_dir, transform=test_transform, limit=LIMIT)
 
-        # Random resized crop
-        decoder = RandomResizedCropRGBImageDecoder((224, 224))
-
-        # Data decoding and augmentation
-        image_pipeline = [decoder, ToTensor(), Convert(target_dtype=torch.float32),
-                          ToTorchImage(), ToDevice(DEVICE)]
-        label_pipeline = [IntDecoder(), ToTensor(), ToDevice(DEVICE)]
-
-        # Pipeline for each data field
-        pipelines = {
-            'image': image_pipeline,
-            'label': label_pipeline
-        }
-
-        dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'test-jpg90.beton')
-        # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
-        test_loader = Loader(dataset_path, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
-                             pipelines=pipelines)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.bs, num_workers=12, pin_memory=True)
+        # # Random resized crop
+        # decoder = RandomResizedCropRGBImageDecoder((224, 224))
+        #
+        # # Data decoding and augmentation
+        # image_pipeline = [decoder, ToTensor(), Convert(target_dtype=torch.float32),
+        #                   ToTorchImage(), ToDevice(DEVICE)]
+        # label_pipeline = [IntDecoder(), ToTensor(), ToDevice(DEVICE)]
+        #
+        # # Pipeline for each data field
+        # pipelines = {
+        #     'image': image_pipeline,
+        #     'label': label_pipeline
+        # }
+        #
+        # dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'test-jpg90.beton')
+        # # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
+        # test_loader = Loader(dataset_path, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
+        #                      pipelines=pipelines)
 
         classes_names = test_dataset.classes_names
 
