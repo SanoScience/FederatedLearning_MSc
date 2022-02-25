@@ -3,7 +3,7 @@
 #SBATCH --output=%j_client.txt
 #SBATCH --time=6:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=12
 #SBATCH --cpus-per-task=12
 #SBATCH -n 1
 #SBATCH -p plgrid-gpu-v100
