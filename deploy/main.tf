@@ -12,19 +12,21 @@ module "flower-vpc" {
   routing_mode = "GLOBAL"
   auto_create_subnetworks = true
 
-  subnets = [{
-    subnet_name = "flower-subnet"
-    subnet_ip = "10.10.10.0/24"
-    subnet_region = "us-central1"
-  }]
+  subnets = [
+    {
+      subnet_name = "flower-subnet"
+      subnet_ip = "10.10.10.0/24"
+      subnet_region = "us-central1"
+    }]
 
-  routes = [{
-    name = "egress2-internet"
-    description = "route through IGW to access internet"
-    destination_range = "0.0.0.0/0"
-    tags = "egress2-inet"
-    next_hop_internet = "true"
-  }]
+  routes = [
+    {
+      name = "egress2-internet"
+      description = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags = "egress2-inet"
+      next_hop_internet = "true"
+    }]
 }
 
 resource google_compute_firewall "firewall-server" {
@@ -33,7 +35,7 @@ resource google_compute_firewall "firewall-server" {
   source_tags = [
     "web"]
 
-  allow  {
+  allow {
     protocol = "tcp"
     ports = [
       "80",
@@ -68,16 +70,20 @@ resource "google_compute_instance" "server" {
     }
   }
 
-  guest_accelerator = [
-    {
-      type = "nvidia-tesla-k80"
-      count = "1"
-    }]
+  //  guest_accelerator = [
+  //    {
+  //      type = "nvidia-tesla-k80"
+  //      count = "1"
+  //    }]
 
   scheduling {
     on_host_maintenance = "TERMINATE"
   }
-  metadata_startup_script = "#!/bin/bash\n\necho hello"
+  metadata = {
+    startup-script = <<-EOF
+    echo hello > /test.txt
+    EOF
+  }
 }
 
 
@@ -93,22 +99,26 @@ resource google_compute_instance "client" {
     }
   }
 
-  network_interface  {
+  network_interface {
     network = "default"
-    access_config  {
+    access_config {
     }
   }
 
-  guest_accelerator = [{
-    type = "nvidia-tesla-k80"
-    count = "1"
-  }]
+  //  guest_accelerator = [{
+  //    type = "nvidia-tesla-k80"
+  //    count = "1"
+  //  }]
 
-  scheduling  {
+  scheduling {
     on_host_maintenance = "TERMINATE"
   }
 
-  metadata_startup_script = "#!/bin/bash\n\necho hello"
+  metadata = {
+    startup-script = <<-EOF
+    echo ${google_compute_address.flower-server.address} > /test.txt
+    EOF
+  }
 }
 
 output "instance_0_endpoint" {
