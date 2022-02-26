@@ -1,8 +1,8 @@
 provider "google" {
-    project = "sano-332607"
-    region = "us-central1"
-    zone = "us-central1-a"
-  }
+  project = "sano-332607"
+  region = "us-central1"
+  zone = "us-central1-a"
+}
 
 
 module "flower-vpc" {
@@ -12,29 +12,36 @@ module "flower-vpc" {
   routing_mode = "GLOBAL"
   auto_create_subnetworks = true
 
-  subnets = {
+  subnets = [{
     subnet_name = "flower-subnet"
     subnet_ip = "10.10.10.0/24"
     subnet_region = "us-central1"
-  }
+  }]
 
-  routes = {
+  routes = [{
     name = "egress2-internet"
     description = "route through IGW to access internet"
     destination_range = "0.0.0.0/0"
     tags = "egress2-inet"
     next_hop_internet = "true"
-  }
+  }]
 }
 
 resource google_compute_firewall "firewall-server" {
   name = "firewall-server"
   network = "default"
-  source_tags = ["web"]
+  source_tags = [
+    "web"]
 
-  allow = {
+  allow  {
     protocol = "tcp"
-    ports = ["80", "8080", "443", "5000-5999", "6000-6999", "7000-7999"]
+    ports = [
+      "80",
+      "8080",
+      "443",
+      "5000-5999",
+      "6000-6999",
+      "7000-7999"]
   }
 }
 
@@ -53,20 +60,51 @@ resource "google_compute_instance" "server" {
     }
   }
 
-  network_interface = {
+  network_interface {
     network = "default"
 
-    access_config = {
+    access_config {
       nat_ip = google_compute_address.flower-server.address
     }
   }
 
-  guest_accelerator = {
-    type = "nvidia-tesla-k80"
-    count = "1"
+  guest_accelerator = [
+    {
+      type = "nvidia-tesla-k80"
+      count = "1"
+    }]
+
+  scheduling {
+    on_host_maintenance = "TERMINATE"
+  }
+  metadata_startup_script = "#!/bin/bash\n\necho hello"
+}
+
+
+resource google_compute_instance "client" {
+  name = "client-${count.index}"
+  machine_type = "n1-standard-8"
+  zone = "us-central1-a"
+  count = var.node_count
+
+  boot_disk {
+    initialize_params {
+      image = "projects/sano-332607/global/images/fl-msc-image-v1"
+    }
   }
 
-  scheduling = {
+  network_interface  {
+    network = "default"
+    access_config  {
+    }
+  }
+
+  guest_accelerator = [{
+    type = "nvidia-tesla-k80"
+    count = "1"
+  }]
+
+  scheduling  {
     on_host_maintenance = "TERMINATE"
   }
 
