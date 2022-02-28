@@ -107,7 +107,7 @@ def load_data(client_id, clients_number, d_name, bs):
 
         dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'train-jpg90.beton')
         # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
-        train_loader = Loader(dataset_path, batch_size=bs, num_workers=12, order=OrderOption.SEQUENTIAL,
+        train_loader = Loader(dataset_path, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
                               pipelines=pipelines, indices=ids)
 
         return train_loader, train_dataset.classes_names
@@ -160,6 +160,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
 @click.option('--m', default='ResNet50', type=str, help='Model used for training')
 def run_client(sa, c_id, c, m):
     # Start client
+    LOGGER.info(f"Cpu count: {os.cpu_count()}")
     LOGGER.info("Connecting to:" + f"{sa}:8087")
     fl.client.start_numpy_client(f"{sa}:8087",
                                  client=SingleLabelClassificationClient(c_id, c, m))
