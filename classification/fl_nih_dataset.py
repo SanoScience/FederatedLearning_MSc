@@ -12,7 +12,7 @@ class NIHDataset(Dataset):
         self.classes_names = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
                               "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
                               "Cardiomegaly", "No Finding"]
-
+        print(os.getcwd())
         with open(dataset_split_file, "r") as file:
             file_content = file.readlines()
 
@@ -48,7 +48,7 @@ class NIHDataset(Dataset):
     def one_hot_multiclass(self, labels_list):
         for elem in labels_list:
             elem = elem.split('|')
-            labels_vector = np.zeros(len(self.classes_names), dtype=np.long)
+            labels_vector = np.zeros(len(self.classes_names), dtype=np.float32)
             for idx, item in enumerate(self.classes_names):
                 if item in elem:
                     labels_vector[idx] = 1.0
