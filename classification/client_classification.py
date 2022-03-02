@@ -85,32 +85,30 @@ def load_data(client_id, clients_number, d_name, bs):
         images_dir, train_subset, _ = get_data_paths(d_name)
         LOGGER.info(f"images_dir: {images_dir}")
         train_transform = get_train_transform_rsna(IMAGE_SIZE)
-        train_dataset = RSNADataset(client_id, clients_number, train_subset, images_dir, transform=train_transform,
+        train_dataset = RSNADataset(-1, 1, train_subset, images_dir, transform=train_transform,
                                     limit=LIMIT)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, num_workers=12, pin_memory=True)
+        dataset_len = len(train_dataset)
+        selector = IIDSelector()
+        ids = selector.get_ids(dataset_len, client_id, clients_number)
 
-        # dataset_len = len(train_dataset)
-        # selector = IIDSelector()
-        # ids = selector.get_ids(dataset_len, client_id, clients_number)
-        #
-        # # Random resized crop
-        # decoder = RandomResizedCropRGBImageDecoder((224, 224))
-        #
-        # # Data decoding and augmentation
-        # image_pipeline = [decoder, ToTensor(), Convert(target_dtype=torch.float32),
-        #                   ToTorchImage(), ToDevice(device)]
-        # label_pipeline = [IntDecoder(), ToTensor(), ToDevice(device)]
-        #
-        # # Pipeline for each data field
-        # pipelines = {
-        #     'image': image_pipeline,
-        #     'label': label_pipeline
-        # }
-        #
-        # dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'train-jpg90.beton')
-        # # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
-        # train_loader = Loader(dataset_path, batch_size=bs, num_workers=12, order=OrderOption.SEQUENTIAL,
-        #                       pipelines=pipelines, indices=ids)
+        # Random resized crop
+        decoder = RandomResizedCropRGBImageDecoder((224, 224))
+
+        # Data decoding and augmentation
+        image_pipeline = [decoder, ToTensor(), Convert(target_dtype=torch.float32),
+                          ToTorchImage(), ToDevice(device)]
+        label_pipeline = [IntDecoder(), ToTensor(), ToDevice(device)]
+
+        # Pipeline for each data field
+        pipelines = {
+            'image': image_pipeline,
+            'label': label_pipeline
+        }
+
+        dataset_path = os.path.join(RSNA_DATASET_PATH_BASE, 'train-jpg90.beton')
+        # Replaces PyTorch data loader (`torch.utils.data.Dataloader`)
+        train_loader = Loader(dataset_path, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
+                              pipelines=pipelines, indices=ids)
 
         return train_loader, train_dataset.classes_names
 
@@ -162,6 +160,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
 @click.option('--m', default='ResNet50', type=str, help='Model used for training')
 def run_client(sa, c_id, c, m):
     # Start client
+    LOGGER.info(f"Cpu count: {os.cpu_count()}")
     LOGGER.info("Connecting to:" + f"{sa}:8087")
     fl.client.start_numpy_client(f"{sa}:8087",
                                  client=SingleLabelClassificationClient(c_id, c, m))
