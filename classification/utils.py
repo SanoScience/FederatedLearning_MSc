@@ -10,6 +10,7 @@ import json
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+REPO_DATASETS_PATH_BASE = os.path.expandvars("$SCRATCH/FederatedLearning_MSc/classification/datasets")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/")
 
@@ -81,9 +82,9 @@ def get_data_paths(dataset):
         return images_dir, train_subset, test_subset
     elif dataset == 'nih':
         images_dir = os.path.join(NIH_DATASET_PATH_BASE, 'images')
-        train_subset = './datasets/NIH/train_val_list.txt'
-        test_subset = './datasets/NIH/test_list.txt'
-        labels_file = './datasets/NIH/Data_Entry_2017_v2020.csv'
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/train_val_list.txt')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/test_list.txt')
+        labels_file = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/Data_Entry_2017_v2020.csv')
         return images_dir, train_subset, test_subset, labels_file
 
 
