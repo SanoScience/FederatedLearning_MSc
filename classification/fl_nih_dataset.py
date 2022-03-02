@@ -1,32 +1,25 @@
-import glob
 import pandas as pd
-import torch
 import os
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image, ImageFile
+from torch.utils.data import Dataset
+from PIL import Image
 import numpy as np
-import cv2
 from data_selector import IIDSelector
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class NIHDataset(Dataset):
-    def __init__(self, client_id, clients_number, dataset_split_file, labels, images_source, transform=None, limit=-1):
+    def __init__(self, client_id, clients_number, dataset_split_file, labels, images_source, limit=-1):
+        # Order of classes adjusted to ChestDx dataset
+        self.classes_names = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
+                              "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
+                              "Cardiomegaly", "No Finding"]
 
-        self.transform = transform
-        self.classes_names = ["Atelectasis", "Cardiomegaly", "Effusion", "Infiltration", "Mass", "Nodule", "Pneumonia",
-                              "Pneumothorax", "Consolidation", "Edema", "Emphysema",
-                              "Fibrosis", "Pleural_Thickening", "Hernia"]
+        with open(dataset_split_file, "r") as file:
+            file_content = file.readlines()
 
-        # IMAGES
-        file = open(dataset_split_file, "r")
-        file_content = file.readlines()
-        file.close()
         file_content = [i.rstrip('\n') for i in file_content]
         files = pd.DataFrame(file_content, columns=['file'])
         self.images = [os.path.join(images_source, file) for file in file_content]
-        images_count = len(self.images)
+        self.images_count = len(self.images)
 
         # LABELS
         labels_nih = pd.read_csv(labels)
@@ -44,23 +37,13 @@ class NIHDataset(Dataset):
                                                                     clients_number)
 
     def __len__(self):
-        return len(self.one_hot_labels)
+        return self.images_count
 
     def __getitem__(self, idx):
-
         path = self.images[idx]
-
-        # solve truncated image problem
         pil_image = Image.open(path).convert('RGB')
-        open_cv_image = np.array(pil_image)
-        # RGB to BGR
-        image = open_cv_image[:, :, ::-1].copy()
         label = self.one_hot_labels[idx]
-
-        if self.transform:
-            image = self.transform(image=image)['image']
-
-        return image, label
+        return pil_image, label
 
     def one_hot_multiclass(self, labels_list):
         for elem in labels_list:

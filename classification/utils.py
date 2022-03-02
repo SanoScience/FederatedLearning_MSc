@@ -11,6 +11,7 @@ import json
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
+NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/")
 
 
 def accuracy(y_pred, y_true):
@@ -78,6 +79,12 @@ def get_data_paths(dataset):
         else:
             images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_09_01_1024/")
         return images_dir, train_subset, test_subset
+    elif dataset == 'nih':
+        images_dir = os.path.join(NIH_DATASET_PATH_BASE, 'images')
+        train_subset = './datasets/NIH/train_val_list.txt'
+        test_subset = './datasets/NIH/test_list.txt'
+        labels_file = './datasets/NIH/Data_Entry_2017_v2020.csv'
+        return images_dir, train_subset, test_subset, labels_file
 
 
 def test_single_label(model, device, logger, test_loader, criterion, classes_names):
