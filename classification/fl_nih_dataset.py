@@ -7,7 +7,7 @@ from data_selector import IIDSelector
 
 
 class NIHDataset(Dataset):
-    def __init__(self, client_id, clients_number, dataset_split_file, labels, images_source, limit=-1):
+    def __init__(self, client_id, clients_number, dataset_split_file, labels, images_dir, limit=-1):
         # Order of classes adjusted to ChestDx dataset
         self.classes_names = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
                               "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
@@ -18,7 +18,7 @@ class NIHDataset(Dataset):
 
         file_content = [i.rstrip('\n') for i in file_content]
         files = pd.DataFrame(file_content, columns=['file'])
-        self.images = [os.path.join(images_source, file) for file in file_content]
+        self.images = [os.path.join(images_dir, file) for file in file_content]
         self.images_count = len(self.images)
 
         # LABELS
