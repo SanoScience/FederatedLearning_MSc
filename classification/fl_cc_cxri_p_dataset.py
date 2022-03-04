@@ -13,15 +13,15 @@ class CCCXRIPDataset(Dataset):
 
         # "Normal"=0, "Viral"=1, "COVID"=2, "Other"=3
         self.classes_names = ["Normal", "Viral", "COVID", "Other"]
-        self.images_file = pd.read_csv(images_file)
+        self.images_file_df = pd.read_csv(images_file)
 
         # IMAGES
-        self.images = [os.path.join(images_dir, row['path']) for _, row in self.images_file.iterrows()]
+        self.images = [os.path.join(images_dir, row['path']) for _, row in self.images_file_df.iterrows()]
         self.images_count = len(self.images)
         print(f'Dataset file:{images_file}, len = {self.images_count}')
 
         # LABELS
-        self.labels = [row['class'] for _, row in self.images_file.iterrows()]
+        self.labels = [row['class'] for _, row in self.images_file_df.iterrows()]
 
         if limit != -1:
             self.images = self.images[:limit]
