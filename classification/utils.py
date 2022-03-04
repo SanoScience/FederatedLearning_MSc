@@ -13,6 +13,11 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 REPO_DATASETS_PATH_BASE = os.path.expandvars("$SCRATCH/FederatedLearning_MSc/classification/datasets")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 NIH_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/NIH/")
+CHESTDX_DATASET_PATH_BASE = os.path.expandvars(
+    "$PLG_GROUPS_STORAGE/plggsano/fl_msc_classification/classification/China_X_ray")
+CHEXPERT_DATASET_PATH_BASE = os.path.expandvars("$PLG_GROUPS_STORAGE/plggsano/Chexpert/Chexpert_dataset")
+MIMIC_DATASET_PATH_BASE = os.path.expandvars(
+    "$SCRATCH/fl_msc/classification/MIMIC/mimic-cxr-jpg-2.0.0.physionet.org/files")
 
 
 def accuracy(y_pred, y_true):
@@ -86,6 +91,30 @@ def get_data_paths(dataset):
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/test_list.txt')
         labels_file = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/Data_Entry_2017_v2020.csv')
         return images_dir, train_subset, test_subset, labels_file
+    elif dataset == 'chestdx':
+        images_dir = CHESTDX_DATASET_PATH_BASE
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx/train.csv')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx/test.csv')
+        return images_dir, train_subset, test_subset
+    elif dataset == 'chestdx-pe':
+        images_dir = CHESTDX_DATASET_PATH_BASE
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx-PE/full.csv')
+        return images_dir, test_subset
+    elif dataset == 'cc-cxri-p':
+        images_dir = CHESTDX_DATASET_PATH_BASE
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CC-CXRI-P/train.csv')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CC-CXRI-P/test.csv')
+        return images_dir, train_subset, test_subset
+    elif dataset == 'chexpert':
+        images_dir = CHEXPERT_DATASET_PATH_BASE
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CheXpert/train.csv')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CheXpert/valid.csv')
+        return images_dir, train_subset, test_subset
+    elif dataset == 'mimic':
+        images_dir = MIMIC_DATASET_PATH_BASE
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_train.csv')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_test.csv')
+        return images_dir, train_subset, test_subset
 
 
 def test_single_label(model, device, logger, test_loader, criterion, classes_names):
