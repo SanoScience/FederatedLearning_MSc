@@ -110,7 +110,7 @@ resource "google_compute_instance" "server" {
     CURR_DIR=$PWD
     PARENT_DIR="$(dirname "$CURR_DIR")"
     export PYTHONPATH=$PARENT_DIR
-    # python3 server_segmentation.py --c ${var.node_count} --r ${var.rounds} --a ${var.fed_algo} --le ${var.local_epochs} --lr ${var.learning_rate} --bs ${var.batch_size} --o ${var.optimizer} --ff ${var.fraction_fit} --mf ${var.min_fit_clients}
+    python3 server_segmentation.py --c ${var.node_count} --r ${var.rounds} --a ${var.fed_algo} --le ${var.local_epochs} --lr ${var.learning_rate} --bs ${var.batch_size} --o ${var.optimizer} --ff ${var.fraction_fit} --mf ${var.min_fit_clients} > logs.txt
     EOF
   }
 }
@@ -162,7 +162,7 @@ resource google_compute_instance "client" {
     CURR_DIR=$PWD
     PARENT_DIR="$(dirname "$CURR_DIR")"
     export PYTHONPATH=$PARENT_DIR
-    # python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count}
+    python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count} > logs.txt
     EOF
   }
 }
