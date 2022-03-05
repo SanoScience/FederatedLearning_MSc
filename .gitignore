@@ -136,3 +136,6 @@ unet_*
 
 
 .idea
+
+deploy_segmentation/.terraform/*
+deploy_segmentation/.*

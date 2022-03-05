@@ -4,6 +4,18 @@ provider "google" {
   zone = "us-central1-a"
 }
 
+resource google_service_account "default" {
+  account_id = "flower-federated-learning"
+  display_name = "FL Msc Account"
+}
+
+resource "google_storage_bucket_iam_binding" "binding" {
+  bucket = var.dataset_bucket
+  role = "roles/storage.admin"
+  members = [
+      "serviceAccount:${google_service_account.default.email}"
+  ]
+}
 
 module "flower-vpc" {
   source = "terraform-google-modules/network/google"
@@ -32,18 +44,19 @@ module "flower-vpc" {
 resource google_compute_firewall "firewall-server" {
   name = "firewall-server"
   network = "default"
-  source_tags = [
-    "web"]
-
+  source_ranges = [
+    "0.0.0.0/0"]
+  // todo: use serivce account
+  // source_service_accounts = [google_service_account.default.email]
   allow {
     protocol = "tcp"
     ports = [
       "80",
-      "8080",
       "443",
       "5000-5999",
       "6000-6999",
-      "7000-7999"]
+      "7000-7999",
+      "8000-8999"]
   }
 }
 
@@ -55,6 +68,8 @@ resource "google_compute_instance" "server" {
   name = "server"
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
+  tags = [
+    "flwr-server"]
 
   boot_disk {
     initialize_params {
@@ -79,9 +94,23 @@ resource "google_compute_instance" "server" {
   scheduling {
     on_host_maintenance = "TERMINATE"
   }
+  service_account {
+    email = google_service_account.default.email
+    scopes = ["cloud-platform"]
+  }
   metadata = {
     startup-script = <<-EOF
-    echo hello > /test.txt
+    cd /home/prz_jab98
+    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
+    unzip chest_dataset.zip
+
+    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
+    cd FederatedLearning_MSc/segmentation
+
+    CURR_DIR=$PWD
+    PARENT_DIR="$(dirname "$CURR_DIR")"
+    export PYTHONPATH=$PARENT_DIR
+    # python3 server_segmentation.py --c ${var.node_count} --r ${var.rounds} --a ${var.fed_algo} --le ${var.local_epochs} --lr ${var.learning_rate} --bs ${var.batch_size} --o ${var.optimizer} --ff ${var.fraction_fit} --mf ${var.min_fit_clients}
     EOF
   }
 }
@@ -92,7 +121,8 @@ resource google_compute_instance "client" {
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
   count = var.node_count
-
+  tags = [
+    "flwr-client"]
   boot_disk {
     initialize_params {
       image = "projects/sano-332607/global/images/fl-msc-image-v1"
@@ -114,9 +144,25 @@ resource google_compute_instance "client" {
     on_host_maintenance = "TERMINATE"
   }
 
+  service_account {
+    email = google_service_account.default.email
+    scopes = [
+      "cloud-platform"]
+  }
+
   metadata = {
     startup-script = <<-EOF
-    echo ${google_compute_address.flower-server.address} > /test.txt
+    cd /home/prz_jab98
+    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
+    unzip chest_dataset.zip
+
+    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
+    cd FederatedLearning_MSc/segmentation
+
+    CURR_DIR=$PWD
+    PARENT_DIR="$(dirname "$CURR_DIR")"
+    export PYTHONPATH=$PARENT_DIR
+    # python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count}
     EOF
   }
 }
