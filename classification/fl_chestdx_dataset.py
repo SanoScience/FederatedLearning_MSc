@@ -15,7 +15,6 @@ class ChestDxDataset(Dataset):
 
         self.images_file_df = pd.read_csv(images_file)
         self.images = [os.path.join(images_dir, row['zip'], row['image']) for _, row in self.images_file_df.iterrows()]
-        self.images_count = len(self.images)
         self.one_hot_labels = self.get_one_hot_multiclass(self.images_file_df)
 
         if limit != -1:
@@ -26,6 +25,7 @@ class ChestDxDataset(Dataset):
         if client_id != -1:
             self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
                                                                     clients_number)
+        self.images_count = len(self.images)
 
     def __len__(self):
         return self.images_count

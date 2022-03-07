@@ -19,7 +19,6 @@ class NIHDataset(Dataset):
         file_content = [i.rstrip('\n') for i in file_content]
         files = pd.DataFrame(file_content, columns=['file'])
         self.images = [os.path.join(images_dir, file) for file in file_content]
-        self.images_count = len(self.images)
 
         # LABELS
         labels_nih = pd.read_csv(labels)
@@ -35,6 +34,7 @@ class NIHDataset(Dataset):
         if client_id != -1:
             self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
                                                                     clients_number)
+        self.images_count = len(self.images)
 
     def __len__(self):
         return self.images_count

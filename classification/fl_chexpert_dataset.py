@@ -21,11 +21,11 @@ class CheXpertDataset(Dataset):
             self.images = self.images[:limit]
             self.one_hot_labels = self.one_hot_labels[:limit]
 
-        self.images_count = len(self.images)
         selector = IIDSelector()
         if client_id != -1:
             self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
                                                                     clients_number)
+        self.images_count = len(self.images)
 
     def __len__(self):
         return self.images_count

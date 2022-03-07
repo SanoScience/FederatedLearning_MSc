@@ -17,7 +17,6 @@ class CCCXRIPDataset(Dataset):
 
         # IMAGES
         self.images = [os.path.join(images_dir, row['path']) for _, row in self.images_file_df.iterrows()]
-        self.images_count = len(self.images)
         print(f'Dataset file:{images_file}, len = {self.images_count}')
 
         # LABELS
@@ -30,6 +29,7 @@ class CCCXRIPDataset(Dataset):
         selector = IIDSelector()
         if client_id != -1:
             self.images, self.labels = selector.select_data(self.images, self.labels, client_id, clients_number)
+        self.images_count = len(self.images)
 
     def __len__(self):
         return self.images_count
