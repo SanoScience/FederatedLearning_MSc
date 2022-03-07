@@ -15,13 +15,13 @@ class CheXpertDataset(Dataset):
 
         self.images_file_df = pd.read_csv(images_file)
         self.images = [os.path.join(images_dir, row['Path']) for _, row in self.images_file_df.iterrows()]
-        self.images_count = len(self.images)
         self.one_hot_labels = self.get_one_hot_multiclass(self.images_file_df)
 
         if limit != -1:
             self.images = self.images[:limit]
             self.one_hot_labels = self.one_hot_labels[:limit]
 
+        self.images_count = len(self.images)
         selector = IIDSelector()
         if client_id != -1:
             self.images, self.one_hot_labels = selector.select_data(self.images, self.one_hot_labels, client_id,
