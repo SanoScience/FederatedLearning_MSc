@@ -13,7 +13,7 @@ resource "google_storage_bucket_iam_binding" "binding" {
   bucket = var.dataset_bucket
   role = "roles/storage.admin"
   members = [
-      "serviceAccount:${google_service_account.default.email}"
+    "serviceAccount:${google_service_account.default.email}"
   ]
 }
 
@@ -85,21 +85,23 @@ resource "google_compute_instance" "server" {
     }
   }
 
-  //  guest_accelerator = [
-  //    {
-  //      type = "nvidia-tesla-k80"
-  //      count = "1"
-  //    }]
+  guest_accelerator {
+    type = "nvidia-tesla-k80"
+    count = 1
+  }
 
   scheduling {
     on_host_maintenance = "TERMINATE"
   }
   service_account {
     email = google_service_account.default.email
-    scopes = ["cloud-platform"]
+    scopes = [
+      "cloud-platform"]
   }
   metadata = {
     startup-script = <<-EOF
+    sudo /opt/deeplearning/install-driver.sh
+
     cd /home/prz_jab98
     gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
     unzip chest_dataset.zip
@@ -136,10 +138,10 @@ resource google_compute_instance "client" {
     }
   }
 
-  //  guest_accelerator = [{
-  //    type = "nvidia-tesla-k80"
-  //    count = "1"
-  //  }]
+  guest_accelerator {
+    type = "nvidia-tesla-k80"
+    count = 1
+  }
 
   scheduling {
     on_host_maintenance = "TERMINATE"
@@ -153,6 +155,8 @@ resource google_compute_instance "client" {
 
   metadata = {
     startup-script = <<-EOF
+    sudo /opt/deeplearning/install-driver.sh
+
     cd /home/prz_jab98
     gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
     unzip chest_dataset.zip
