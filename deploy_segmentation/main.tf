@@ -105,6 +105,7 @@ resource "google_compute_instance" "server" {
     unzip chest_dataset.zip
 
     git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
+    sudo chmod -R 777 FederatedLearning_MSc
     cd FederatedLearning_MSc/segmentation
 
     CURR_DIR=$PWD
@@ -157,6 +158,7 @@ resource google_compute_instance "client" {
     unzip chest_dataset.zip
 
     git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
+    sudo chmod -R 777 FederatedLearning_MSc
     cd FederatedLearning_MSc/segmentation
 
     CURR_DIR=$PWD
