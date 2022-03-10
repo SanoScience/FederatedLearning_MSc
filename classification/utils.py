@@ -128,7 +128,14 @@ def get_beton_data_paths(dataset):
         return train_subset, test_subset
 
 
-def test_single_label(model, device, logger, test_loader, criterion, classes_names):
+def get_class_names(dataset):
+    dataset_to_names = {
+        'rsna': ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
+    }
+    return dataset_to_names[dataset]
+
+
+def test_single_label(model, logger, test_loader, criterion, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
     test_preds = []
@@ -137,10 +144,6 @@ def test_single_label(model, device, logger, test_loader, criterion, classes_nam
     logger.info("Testing: ")
     with torch.no_grad():
         for batch_idx, (image, batch_label) in enumerate(test_loader):
-            # image = image.to(device=device, dtype=torch.float32)
-            # batch_label = batch_label.to(device=device)
-            batch_label = torch.flatten(batch_label)
-
             logits = model(image)
             loss = criterion(logits, batch_label)
 
