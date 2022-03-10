@@ -117,6 +117,13 @@ def get_data_paths(dataset):
         return images_dir, train_subset, test_subset
 
 
+def get_beton_data_paths(dataset):
+    if dataset == 'nih':
+        train_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-train-jpg90.beton')
+        test_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-test-jpg90.beton')
+        return train_subset, test_subset
+
+
 def test_single_label(model, device, logger, test_loader, criterion, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
