@@ -11,7 +11,7 @@ import torchvision
 from sklearn.metrics import classification_report, accuracy_score
 
 from ffcv.loader import Loader, OrderOption
-from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Convert
+from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Convert, ToTensor
 from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
 
@@ -92,10 +92,10 @@ def load_data(client_id, clients_number, d_name, bs):
 
         decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
-        image_pipeline = [decoder, torchvision.transforms.ToTensor(), ToDevice(device),
+        image_pipeline = [decoder, ToTensor(), ToDevice(device),
                           Convert(target_dtype=torch.float32),
-                          torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                           std=[0.229, 0.224, 0.225])]
+                          torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
+                                                           std=[58.395, 57.12, 57.375])]
 
         label_pipeline = [IntDecoder(), torchvision.transforms.ToTensor(), ToDevice(device), Squeeze()]
 
