@@ -11,7 +11,7 @@ class NIHDataset(Dataset):
         # Order of classes adjusted to ChestDx dataset
         self.classes_names = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
                               "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
-                              "Cardiomegaly", "No Finding"]
+                              "Cardiomegaly"]
         print(os.getcwd())
         with open(dataset_split_file, "r") as file:
             file_content = file.readlines()
