@@ -19,6 +19,10 @@ CHEXPERT_DATASET_PATH_BASE = os.path.expandvars("$PLG_GROUPS_STORAGE/plggsano/Ch
 MIMIC_DATASET_PATH_BASE = os.path.expandvars(
     "$SCRATCH/fl_msc/classification/MIMIC/mimic-cxr-jpg-2.0.0.physionet.org/files")
 
+NIH_CHESTDX_CLASSES = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
+                       "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
+                       "Cardiomegaly"]
+
 
 def accuracy(y_pred, y_true):
     y_pred = F.softmax(y_pred, dim=1)

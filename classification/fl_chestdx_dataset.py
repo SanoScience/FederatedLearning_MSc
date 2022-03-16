@@ -4,14 +4,13 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 from data_selector import IIDSelector
+from utils import NIH_CHESTDX_CLASSES
 
 
 class ChestDxDataset(Dataset):
     def __init__(self, client_id, clients_number, images_file, images_dir, limit=-1):
         # Order of classes and names the same as in NIH dataset
-        self.classes_names = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelectasis", "Pneumothorax", "Edema",
-                              "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
-                              "Cardiomegaly", "No Finding"]
+        self.classes_names = NIH_CHESTDX_CLASSES
 
         self.images_file_df = pd.read_csv(images_file)
         self.images = [os.path.join(images_dir, row['zip'], row['image']) for _, row in self.images_file_df.iterrows()]
