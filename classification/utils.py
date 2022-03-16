@@ -24,6 +24,10 @@ NIH_CHESTDX_CLASSES = ["Consolidation", "Fibrosis", "Nodule", "Hernia", "Atelect
                        "Pneumonia", "Emphysema", "Effusion", "Infiltration", "Pleural_Thickening", "Mass",
                        "Cardiomegaly"]
 
+CHEXPERT_MIMIC_CLASSES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Enlarged Cardiomediastinum",
+                          "Fracture", "Lung Lesion", "Lung Opacity", "Pleural Effusion",
+                          "Pleural Other", "Pneumonia", "Pneumothorax", "Support Devices"]
+
 
 def accuracy(y_pred, y_true):
     y_pred = F.softmax(y_pred, dim=1)
@@ -157,7 +161,13 @@ def get_beton_data_paths(dataset):
 
 def get_class_names(dataset):
     dataset_to_names = {
-        'rsna': ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
+        'rsna': ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"],
+        'cc-cxri-p': ["Normal", "Viral", "COVID", "Other"],
+        'nih': NIH_CHESTDX_CLASSES,
+        'chestdx': NIH_CHESTDX_CLASSES,
+        'chestdx-pe': NIH_CHESTDX_CLASSES,
+        'chexpert': CHEXPERT_MIMIC_CLASSES,
+        'mimic': CHEXPERT_MIMIC_CLASSES
     }
     return dataset_to_names[dataset]
 

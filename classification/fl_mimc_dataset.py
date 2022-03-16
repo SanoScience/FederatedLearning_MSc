@@ -4,14 +4,13 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 from data_selector import IIDSelector
+from utils import CHEXPERT_MIMIC_CLASSES
 
 
 class MIMICDataset(Dataset):
     def __init__(self, client_id, clients_number, images_file, images_dir, limit=-1):
         # Order of classes and names the same as in CheXpert dataset
-        self.classes_names = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Enlarged Cardiomediastinum",
-                              "Fracture", "Lung Lesion", "Lung Opacity", "No Finding", "Pleural Effusion",
-                              "Pleural Other", "Pneumonia", "Pneumothorax", "Support Devices"]
+        self.classes_names = CHEXPERT_MIMIC_CLASSES
 
         self.images_file_df = pd.read_csv(images_file)
         self.images = [os.path.join(images_dir, row['path']) for _, row in self.images_file_df.iterrows()]
