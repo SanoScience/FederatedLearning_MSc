@@ -84,7 +84,7 @@ class SingleLabelStrategyFactory:
                           Convert(target_dtype=torch.float32),
                           torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
                                                            std=[58.395, 57.12, 57.375])]
-        label_pipeline = [IntDecoder(), torchvision.transforms.ToTensor(), ToDevice(DEVICE), Squeeze()]
+        label_pipeline = [IntDecoder(), ToTensor(), ToDevice(DEVICE), Squeeze()]
 
         pipelines = {
             'image': image_pipeline,
