@@ -23,6 +23,6 @@ writer = DatasetWriter(write_path, {
         max_resolution=512,
         jpeg_quality=90,
     ),
-    'label': NDArrayField(shape=(15,), dtype=np.dtype('float32'))
+    'label': NDArrayField(shape=(14,), dtype=np.dtype('float32'))
 }, num_workers=24)
 writer.from_indexed_dataset(dataset)
