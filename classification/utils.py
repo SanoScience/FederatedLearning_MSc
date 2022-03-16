@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 import torchvision
 import json
+import numpy as np
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -123,6 +124,26 @@ def get_data_paths(dataset):
         return images_dir, train_subset, test_subset
 
 
+def get_type_of_dataset(dataset):
+    if dataset in ['rsna', 'cc-cxri-p']:
+        return 'single-class'
+    if dataset in ['nih', 'chestdx', 'chestdx-pe', 'chexpert', 'mimic']:
+        return 'multi-class'
+
+
+def get_dataset_classes_count(dataset):
+    classes_counts = {
+        'rsna': 3,
+        'cc-cxri-p': 4,
+        'nih': 14,
+        'chestdx': 14,
+        'chestdx-pe': 14,
+        'chexpert': 13,
+        'mimic': 13
+    }
+    return classes_counts[dataset]
+
+
 def get_beton_data_paths(dataset):
     if dataset == 'rsna':
         train_subset = os.path.join(RSNA_DATASET_PATH_BASE, 'train-jpg90.beton')
@@ -181,3 +202,45 @@ def test_single_label(model, logger, test_loader, criterion, classes_names):
                 f" Test Acc: {test_acc:.4f}")
 
     return test_acc, test_loss, report_json
+
+
+def test_multi_label(model, logger, test_loader, criterion, classes_names):
+    # TODO implement AUC
+    test_running_loss = 0.0
+
+    test_labels = torch.FloatTensor().to(DEVICE)
+    test_preds_prob = torch.FloatTensor().to(DEVICE)
+    test_preds = torch.FloatTensor().to(DEVICE)
+    model.eval()
+    logger.info("Testing: ")
+    with torch.no_grad():
+        for batch_idx, (image, batch_label) in enumerate(test_loader):
+            logits = model(image)
+            loss = criterion(logits, batch_label)
+            test_running_loss += loss.item()
+
+            output = torch.sigmoid(logits)
+            test_preds_prob = torch.cat((test_preds_prob, output.data), 0)
+            pred = (output.data > 0.5).type(torch.float32)
+            test_preds = torch.cat((test_preds, pred.data), 0)
+
+            if batch_idx % 50 == 0:
+                logger.info(f"batch_idx: {batch_idx}\n"
+                            f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n")
+
+    test_preds = test_preds.cpu().numpy().astype(np.int32)
+    test_preds_prob = test_preds_prob.cpu().numpy()
+    test_labels = test_labels.cpu().numpy().astype(np.int32)
+
+    logger.info("Test report:")
+    report = classification_report(test_labels, test_preds, target_names=classes_names)
+    logger.info(report)
+    report_json = json.dumps(
+        classification_report(test_labels, test_preds, target_names=classes_names, output_dict=True))
+
+    test_loss = test_running_loss / len(test_loader)
+    logger.info(f" Test Loss: {test_loss:.4f}")
+
+    logger.info(f"test labels\n{test_labels}")
+
+    return None, test_loss, report_json, None
