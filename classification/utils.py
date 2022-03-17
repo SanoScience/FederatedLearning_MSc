@@ -175,10 +175,12 @@ def get_class_names(dataset):
 def test_single_label(model, logger, test_loader, criterion, classes_names):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
-    test_preds = []
-    test_labels = []
     model.eval()
     logger.info("Testing: ")
+
+    test_labels = torch.IntTensor().to(DEVICE)
+    test_preds = torch.IntTensor().to(DEVICE)
+
     with torch.no_grad():
         for batch_idx, (image, batch_label) in enumerate(test_loader):
             logits = model(image)
@@ -188,18 +190,18 @@ def test_single_label(model, logger, test_loader, criterion, classes_names):
             test_running_accuracy += accuracy(logits, batch_label)
 
             y_pred = F.softmax(logits, dim=1)
-            top_p, top_class = y_pred.topk(1, dim=1)
+            _, top_class = y_pred.topk(1, dim=1)
 
-            test_labels.append(batch_label.view(*top_class.shape))
-            test_preds.append(top_class)
+            test_preds = torch.cat((test_preds, top_class.data), 0)
+            test_labels = torch.cat((test_labels, batch_label.data), 0)
 
             if batch_idx % 50 == 0:
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n"
                             f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}\n\n")
 
-    test_preds = torch.cat(test_preds, dim=0).tolist()
-    test_labels = torch.cat(test_labels, dim=0).tolist()
+    test_preds = test_preds.cpu().numpy().astype(np.int32)
+    test_labels = test_labels.cpu().numpy().astype(np.int32)
     logger.info("Test report:")
     report = classification_report(test_labels, test_preds, target_names=classes_names)
     logger.info(report)
@@ -215,7 +217,6 @@ def test_single_label(model, logger, test_loader, criterion, classes_names):
 
 
 def test_multi_label(model, logger, test_loader, criterion, classes_names):
-    # TODO implement AUC
     test_running_loss = 0.0
 
     test_labels = torch.FloatTensor().to(DEVICE)

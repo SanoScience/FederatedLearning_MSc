@@ -154,7 +154,7 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
 @click.option('--sa', default='', type=str, help='Server address')
 @click.option('--c_id', default=0, type=int, help='Client id')
 @click.option('--c', default=1, type=int, help='Clients number')
-@click.option('--m', default='ResNet50', type=str, help='Model used for training')
+@click.option('--m', default='DenseNet121', type=str, help='Model used for training')
 def run_client(sa, c_id, c, m):
     # Start client
     LOGGER.info(f"Cpu count: {os.cpu_count()}")
