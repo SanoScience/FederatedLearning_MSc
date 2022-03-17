@@ -141,7 +141,7 @@ def load_data(client_id, clients_number, d_name, bs):
 
     decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
-    image_pipeline = [decoder, ToTensor(), ToDevice(device),
+    image_pipeline = [decoder, ToTensor(), ToDevice(device), ToTorchImage(),
                       Convert(target_dtype=torch.float32),
                       torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
                                                        std=[58.395, 57.12, 57.375])]
@@ -165,7 +165,8 @@ def load_data(client_id, clients_number, d_name, bs):
 class ClassificationClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number, m_name):
         # Load model
-        self.model = get_model(m_name)
+        # TODO now 14 classes is hardcoded, should be possible to config
+        self.model = get_model(m_name, classes=14)
         self.client_id = client_id
         self.clients_number = clients_number
         self.train_loader = None
