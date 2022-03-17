@@ -1,7 +1,7 @@
 import os
 import torch
 from collections import OrderedDict
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, roc_auc_score
 
 import torch.nn.functional as F
 
@@ -233,6 +233,7 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names):
             test_preds_prob = torch.cat((test_preds_prob, output.data), 0)
             pred = (output.data > 0.5).type(torch.float32)
             test_preds = torch.cat((test_preds, pred.data), 0)
+            test_labels = torch.cat((test_labels, batch_label.data), 0)
 
             if batch_idx % 50 == 0:
                 logger.info(f"batch_idx: {batch_idx}\n"
@@ -248,9 +249,16 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names):
     report_json = json.dumps(
         classification_report(test_labels, test_preds, target_names=classes_names, output_dict=True))
 
+    aucs = {}
+    for i, c in enumerate(classes_names):
+        aucs[c] = roc_auc_score(test_labels.astype(np.float32)[:, i], test_preds_prob[:, i])
+
+    aucs_json = json.dumps(aucs)
+    avg_auc = np.mean(list(aucs.values()))
+
     test_loss = test_running_loss / len(test_loader)
     logger.info(f" Test Loss: {test_loss:.4f}")
+    logger.info(f" Test avg AUC: {avg_auc:.4f}")
+    logger.info(f" Test AUCs: {aucs}")
 
-    logger.info(f"test labels\n{test_labels}")
-
-    return None, test_loss, report_json, None
+    return avg_auc, test_loss, report_json, aucs_json
