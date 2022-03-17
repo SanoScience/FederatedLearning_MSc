@@ -41,8 +41,8 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
         model.train()
         running_loss = 0.0
         running_accuracy = 0.0
-        preds = []
-        labels = []
+        labels = torch.IntTensor().to(device)
+        preds = torch.IntTensor().to(device)
 
         for batch_idx, (images, batch_labels) in enumerate(train_loader):
             optimizer.zero_grad()
@@ -57,18 +57,18 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
             running_accuracy += accuracy(logits, batch_labels)
 
             y_pred = F.softmax(logits, dim=1)
-            top_p, top_class = y_pred.topk(1, dim=1)
+            _, top_class = y_pred.topk(1, dim=1)
 
-            labels.append(batch_labels.view(*top_class.shape))
-            preds.append(top_class)
+            preds = torch.cat((preds, top_class.data), 0)
+            labels = torch.cat((labels, batch_labels.data), 0)
 
             if batch_idx % 10 == 0:
                 LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
-        preds = torch.cat(preds, dim=0).tolist()
-        labels = torch.cat(labels, dim=0).tolist()
+        preds = preds.cpu().numpy().astype(np.int32)
+        labels = labels.cpu().numpy().astype(np.int32)
         LOGGER.info("Training report:")
         LOGGER.info(classification_report(labels, preds, target_names=classes_names))
 
