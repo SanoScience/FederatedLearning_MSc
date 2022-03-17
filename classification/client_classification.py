@@ -8,20 +8,22 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, roc_auc_score
 
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Convert, ToTensor
 from ffcv.transforms.common import Squeeze
-from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
+from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
 from fl_rsna_dataset import RSNADataset
 from data_selector import IIDSelector
 
-from utils import get_state_dict, accuracy, get_train_transform_rsna, get_model, get_data_paths, get_beton_data_paths
+from utils import get_state_dict, accuracy, get_train_transform_rsna, get_model, get_data_paths, get_beton_data_paths, \
+    get_type_of_dataset, get_class_names
 
 import torch.nn.functional as F
 import click
+import pandas as pd
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -79,38 +81,88 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
                     f" Training Acc: {train_acc:.4f}")
 
 
+def train_multi_label(model, train_loader, criterion, optimizer, classes_names, epochs):
+    for epoch in range(epochs):
+        start_time_epoch = time.time()
+        LOGGER.info(f"Starting epoch {epoch + 1} / {epochs}")
+        model.train()
+        running_loss = 0.0
+        labels = torch.FloatTensor().to(device)
+        preds_prob = torch.FloatTensor().to(device)
+        preds = torch.FloatTensor().to(device)
+
+        for batch_idx, (images, batch_labels) in enumerate(train_loader):
+            optimizer.zero_grad()
+
+            logits = model(images)
+            loss = criterion(logits, batch_labels)
+
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+            output = torch.sigmoid(logits)
+            preds_prob = torch.cat((preds_prob, output.data), 0)
+            pred = (output.data > 0.5).type(torch.float32)
+            preds = torch.cat((preds, pred.data), 0)
+            labels = torch.cat((labels, batch_labels.data), 0)
+
+            if batch_idx % 10 == 0:
+                LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                            f" Loss: {running_loss / (batch_idx + 1):.4f}"
+                            f" Time: {time.time() - start_time_epoch:2f}")
+
+        preds = preds.cpu().numpy().astype(np.int32)
+        preds_prob = preds_prob.cpu().numpy()
+        labels = labels.cpu().numpy().astype(np.int32)
+        LOGGER.info("Training report:")
+        LOGGER.info(classification_report(labels, preds, target_names=classes_names))
+
+        aucs = {}
+        for i, c in enumerate(classes_names):
+            aucs[c] = roc_auc_score(labels.astype(np.float32)[:, i], preds_prob[:, i])
+
+        avg_auc = np.mean(list(aucs.values()))
+
+        test_loss = running_loss / len(train_loader)
+        LOGGER.info(f" Loss: {test_loss:.4f}")
+        LOGGER.info(f" Avg AUC: {avg_auc:.4f}")
+        LOGGER.info(f" AUCs: {aucs}")
+
+
 def load_data(client_id, clients_number, d_name, bs):
-    if 'rsna' in d_name:
-        images_dir, train_subset, _ = get_data_paths(d_name)
-        LOGGER.info(f"images_dir: {images_dir}")
-        train_transform = get_train_transform_rsna(IMAGE_SIZE)
-        train_dataset = RSNADataset(-1, 1, train_subset, images_dir, transform=train_transform,
-                                    limit=LIMIT)
-        dataset_len = len(train_dataset)
-        selector = IIDSelector()
-        ids = selector.get_ids(dataset_len, client_id, clients_number)
+    images_dir, train_subset, _ = get_data_paths(d_name)
+    LOGGER.info(f"images_dir: {images_dir}")
+    df = pd.read_csv(train_subset)
+    dataset_len = len(df)
+    selector = IIDSelector()
+    ids = selector.get_ids(dataset_len, client_id, clients_number)
 
-        decoder = RandomResizedCropRGBImageDecoder((224, 224))
+    decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
-        image_pipeline = [decoder, ToTensor(), ToDevice(device),
-                          Convert(target_dtype=torch.float32),
-                          torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
-                                                           std=[58.395, 57.12, 57.375])]
+    image_pipeline = [decoder, ToTensor(), ToDevice(device),
+                      Convert(target_dtype=torch.float32),
+                      torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
+                                                       std=[58.395, 57.12, 57.375])]
 
+    if get_type_of_dataset(d_name) == 'multi-class':
+        label_pipeline = [NDArrayDecoder(), ToTensor(), ToDevice(device)]
+    else:
         label_pipeline = [IntDecoder(), ToTensor(), ToDevice(device), Squeeze()]
 
-        pipelines = {
-            'image': image_pipeline,
-            'label': label_pipeline
-        }
-        train_subset_beton, _ = get_beton_data_paths(d_name)
-        train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
-                              pipelines=pipelines, indices=ids)
+    pipelines = {
+        'image': image_pipeline,
+        'label': label_pipeline
+    }
+    train_subset_beton, _ = get_beton_data_paths(d_name)
+    train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
+                          pipelines=pipelines, indices=ids)
 
-        return train_loader, train_dataset.classes_names
+    return train_loader, get_class_names(d_name)
 
 
-class SingleLabelClassificationClient(fl.client.NumPyClient):
+class ClassificationClient(fl.client.NumPyClient):
     def __init__(self, client_id, clients_number, m_name):
         # Load model
         self.model = get_model(m_name)
@@ -136,13 +188,16 @@ class SingleLabelClassificationClient(fl.client.NumPyClient):
         lr = float(config["learning_rate"])
         d_name = config["dataset_type"]
 
-        criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
+        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
 
-        if not self.train_loader:
-            self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
+        if get_type_of_dataset(d_name) == 'multi-class':
+            criterion = nn.BCEWithLogitsLoss()
+            train_multi_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
+        else:
+            criterion = nn.CrossEntropyLoss()
+            train_single_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
 
-        train_single_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
         return self.get_parameters(), len(self.train_loader), {}
 
     def evaluate(self, parameters, config):
@@ -160,7 +215,7 @@ def run_client(sa, c_id, c, m):
     LOGGER.info(f"Cpu count: {os.cpu_count()}")
     LOGGER.info("Connecting to:" + f"{sa}:8087")
     fl.client.start_numpy_client(f"{sa}:8087",
-                                 client=SingleLabelClassificationClient(c_id, c, m))
+                                 client=ClassificationClient(c_id, c, m))
 
 
 if __name__ == "__main__":
