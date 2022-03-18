@@ -96,7 +96,7 @@ def log_hpc_usage(server_job_id):
 
     server_metrics_df = get_slurm_stats(server_job_id, 'server')
 
-    if not HPC_METRICS_DF:
+    if HPC_METRICS_DF is None:
         HPC_METRICS_DF = server_metrics_df
     else:
         HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, server_metrics_df], ignore_index=True)
