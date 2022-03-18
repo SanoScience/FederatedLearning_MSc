@@ -15,10 +15,9 @@ from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Conv
 from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
-from fl_rsna_dataset import RSNADataset
 from data_selector import IIDSelector
 
-from utils import get_state_dict, accuracy, get_train_transform_rsna, get_model, get_data_paths, get_beton_data_paths, \
+from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
     get_type_of_dataset, get_class_names
 
 import torch.nn.functional as F
@@ -132,7 +131,7 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
 
 
 def load_data(client_id, clients_number, d_name, bs):
-    images_dir, train_subset, _ = get_data_paths(d_name)
+    images_dir, train_subset, _, _ = get_data_paths(d_name)
     LOGGER.info(f"images_dir: {images_dir}")
     df = pd.read_csv(train_subset)
     dataset_len = len(df)

@@ -95,7 +95,7 @@ def get_data_paths(dataset):
             images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "stage_2_train_images_jpg/")
         else:
             images_dir = os.path.join(RSNA_DATASET_PATH_BASE, "masked_stage_2_train_images_09_01_1024/")
-        return images_dir, train_subset, test_subset
+        return images_dir, train_subset, test_subset, None
     elif dataset == 'nih':
         images_dir = os.path.join(NIH_DATASET_PATH_BASE, 'images')
         train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'NIH/train_val_list.txt')
@@ -106,26 +106,26 @@ def get_data_paths(dataset):
         images_dir = CHESTDX_DATASET_PATH_BASE
         train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx/train.csv')
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx/test.csv')
-        return images_dir, train_subset, test_subset
+        return images_dir, train_subset, test_subset, None
     elif dataset == 'chestdx-pe':
         images_dir = CHESTDX_DATASET_PATH_BASE
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'ChestDx-PE/full.csv')
-        return images_dir, test_subset
+        return images_dir, None, test_subset, None
     elif dataset == 'cc-cxri-p':
         images_dir = CHESTDX_DATASET_PATH_BASE
         train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CC-CXRI-P/train.csv')
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CC-CXRI-P/test.csv')
-        return images_dir, train_subset, test_subset
+        return images_dir, train_subset, test_subset, None
     elif dataset == 'chexpert':
         images_dir = CHEXPERT_DATASET_PATH_BASE
         train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CheXpert/train.csv')
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'CheXpert/valid.csv')
-        return images_dir, train_subset, test_subset
+        return images_dir, train_subset, test_subset, None
     elif dataset == 'mimic':
         images_dir = MIMIC_DATASET_PATH_BASE
         train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_train.csv')
         test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_test.csv')
-        return images_dir, train_subset, test_subset
+        return images_dir, train_subset, test_subset, None
 
 
 def get_type_of_dataset(dataset):
