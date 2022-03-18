@@ -7,6 +7,6 @@ touch "$4_client_ids.txt"
 
 while [ "$i" -lt "$2" ]; do
 	echo "starting $i/$2 client"
-	sbatch client_classification.sh $1 $i $2 $3 | cut -d " " -f 4 >> $4
+	sbatch client_classification.sh $1 $i $2 $3 | cut -d " " -f 4 >> "$4_client_ids.txt"
 	i=$((i + 1))
 done
