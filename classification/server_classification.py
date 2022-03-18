@@ -8,6 +8,8 @@ import click
 import time
 import os
 import shutil
+from io import StringIO
+import subprocess
 
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToDevice, ToTorchImage, NormalizeImage, Convert, ToTensor
@@ -37,6 +39,9 @@ BATCH_SIZE = 8
 LEARNING_RATE = 0.0001
 MODEL_NAME = 'DenseNet121'
 DATASET_TYPE = 'nih'
+HPC_LOG = False
+CLIENT_JOB_IDS = []
+HPC_METRICS_DF = None
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -56,7 +61,8 @@ def fit_config(rnd: int):
         "batch_size": BATCH_SIZE,
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
-        "dataset_type": DATASET_TYPE
+        "dataset_type": DATASET_TYPE,
+        "round_no": ROUND
     }
     return config
 
@@ -64,6 +70,45 @@ def fit_config(rnd: int):
 def results_dirname_generator():
     return f'd_{DATASET_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
            f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
+
+
+def get_slurm_stats(job_id, job_type):
+    metrics = subprocess.run(['sstat', job_id, '--parsable2', '--noconvert'], stdout=subprocess.PIPE)
+    metrics_string = metrics.stdout.decode('utf-8')
+    df = pd.read_csv(StringIO(metrics_string), delimiter='|')
+    df['job_type'] = job_type
+    df['round'] = ROUND
+    return df
+
+
+def log_hpc_usage(server_job_id):
+    global CLIENT_JOB_IDS
+    global HPC_METRICS_DF
+    res_dir = results_dirname_generator()
+    hpc_usage_dir = os.path.join(res_dir, 'hpc_metrics')
+    if not os.path.exists(hpc_usage_dir):
+        os.mkdir(hpc_usage_dir)
+
+    if not CLIENT_JOB_IDS:
+        client_ids_file = f'{server_job_id}_client_ids.txt'
+        with open(client_ids_file) as f:
+            CLIENT_JOB_IDS = [line.strip() for line in f]
+
+    server_metrics_df = get_slurm_stats(server_job_id, 'server')
+
+    if not HPC_METRICS_DF:
+        HPC_METRICS_DF = server_metrics_df
+    else:
+        HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, server_metrics_df], ignore_index=True)
+
+    for client_job_id in CLIENT_JOB_IDS:
+        client_metrics_df = get_slurm_stats(client_job_id, 'client')
+        HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, client_metrics_df], ignore_index=True)
+
+    metrics_file = os.path.join(hpc_usage_dir, f'hpc_metrics_{ROUND}.csv')
+    HPC_METRICS_DF.to_csv(metrics_file)
+
+    # TODO gather nvidia-smi from clients
 
 
 class StrategyFactory:
@@ -142,6 +187,9 @@ class StrategyFactory:
 
             df.to_csv(os.path.join(res_dir, 'result.csv'))
 
+            if HPC_LOG and ROUND > 0:
+                log_hpc_usage(os.environ["SLURM_JOB_ID"])
+
             ROUND += 1
 
             if get_type_of_dataset(self.d) == 'multi-class':
@@ -175,9 +223,10 @@ class StrategyFactory:
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
 @click.option('--m', default='DenseNet121', type=str, help='Model used for training')
 @click.option('--d', default='nih', type=str, help='Dataset used for training (nih)')
-def run_server(le, c, r, mf, ff, bs, lr, m, d):
+@click.option('--hpc-log', is_flag=True, help='Whether to log HPC usage metrics')
+def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASET_TYPE
+        DATASET_TYPE, HPC_LOG
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -188,6 +237,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d):
     LEARNING_RATE = lr
     MODEL_NAME = m
     DATASET_TYPE = d
+    HPC_LOG = hpc_log
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
     strategy = factory.get_strategy()
