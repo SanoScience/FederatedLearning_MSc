@@ -177,7 +177,7 @@ def get_class_names(dataset):
 
 def log_gpu_utilization_csv(server_addr, dataset_name, node_id, round_no):
     gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
-    node_gpu_metrics_dir = os.path.join(gpu_metrics_dir, node_id)
+    node_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{dataset_name}_{node_id}')
     metrics_fields = ['timestamp', 'name', 'pstate', 'memory.total', 'memory.used', 'memory.free', 'utilization.gpu',
                       'utilization.memory', 'encoder.stats.sessionCount', 'encoder.stats.averageFps',
                       'encoder.stats.averageLatency', 'temperature.gpu', 'temperature.memory', 'power.draw',
