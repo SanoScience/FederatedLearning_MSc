@@ -89,46 +89,48 @@ def update_gpu_stats():
     pass
 
 
-def log_hpc_usage(server_job_id):
-    global CLIENT_JOB_IDS
-    global HPC_METRICS_DF
-
-    res_dir = results_dirname_generator()
-    hpc_usage_dir = os.path.join(res_dir, 'hpc_metrics')
-    if not os.path.exists(hpc_usage_dir):
-        os.mkdir(hpc_usage_dir)
-
-    if not CLIENT_JOB_IDS:
-        client_ids_file = f'{server_job_id}_client_ids.txt'
-        with open(client_ids_file) as f:
-            CLIENT_JOB_IDS = [line.strip() for line in f]
-
+def make_gpu_usage_dirs():
     server_addr = socket.gethostname()
     gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
     if os.path.exists(gpu_metrics_dir):
         shutil.rmtree(gpu_metrics_dir)
     os.mkdir(gpu_metrics_dir)
-
     for client_id in range(CLIENTS):
         client_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_{client_id}')
         os.mkdir(client_gpu_metrics_dir)
     server_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_server')
     os.mkdir(server_gpu_metrics_dir)
 
-    server_metrics_df = get_slurm_stats(server_job_id, 'server')
 
-    if HPC_METRICS_DF is None:
-        HPC_METRICS_DF = server_metrics_df
+def log_hpc_usage(server_job_id):
+    global CLIENT_JOB_IDS
+    global HPC_METRICS_DF
+
+    res_dir = results_dirname_generator()
+    hpc_usage_dir = os.path.join(res_dir, 'hpc_metrics')
+    if ROUND == 0:
+        if os.path.exists(hpc_usage_dir):
+            shutil.rmtree(hpc_usage_dir)
+        os.mkdir(hpc_usage_dir)
     else:
-        HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, server_metrics_df], ignore_index=True)
+        if not CLIENT_JOB_IDS:
+            client_ids_file = f'{server_job_id}_client_ids.txt'
+            with open(client_ids_file) as f:
+                CLIENT_JOB_IDS = [line.strip() for line in f]
 
-    for client_job_id in CLIENT_JOB_IDS:
-        client_metrics_df = get_slurm_stats(client_job_id, 'client')
-        HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, client_metrics_df], ignore_index=True)
+        server_metrics_df = get_slurm_stats(server_job_id, 'server')
 
-    metrics_file = os.path.join(hpc_usage_dir, f'hpc_metrics_{ROUND}.csv')
-    HPC_METRICS_DF.to_csv(metrics_file)
-    update_gpu_stats()
+        if HPC_METRICS_DF is None:
+            HPC_METRICS_DF = server_metrics_df
+        else:
+            HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, server_metrics_df], ignore_index=True)
+
+        for client_job_id in CLIENT_JOB_IDS:
+            client_metrics_df = get_slurm_stats(client_job_id, 'client')
+            HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, client_metrics_df], ignore_index=True)
+
+        metrics_file = os.path.join(hpc_usage_dir, f'hpc_metrics_{ROUND}.csv')
+        HPC_METRICS_DF.to_csv(metrics_file)
 
 
 class StrategyFactory:
@@ -208,7 +210,7 @@ class StrategyFactory:
 
             df.to_csv(os.path.join(res_dir, 'result.csv'))
 
-            if HPC_LOG and ROUND > 0:
+            if HPC_LOG:
                 log_hpc_usage(os.environ["SLURM_JOB_ID"])
 
             ROUND += 1
@@ -268,6 +270,9 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
     if os.path.exists(res_dir):
         shutil.rmtree(res_dir)
     os.mkdir(res_dir)
+
+    if HPC_LOG:
+        make_gpu_usage_dirs()
 
     # Start server
     LOGGER.info(f"Starting server on {server_addr}")
