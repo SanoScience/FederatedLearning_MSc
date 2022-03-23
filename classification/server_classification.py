@@ -84,7 +84,6 @@ def get_slurm_stats(job_id, job_type):
 
 
 def update_gpu_stats():
-    # todo implement data logging on client side
     # todo implement data gathering on server side
     pass
 
