@@ -8,6 +8,9 @@ import torch.nn.functional as F
 import torchvision
 import json
 import numpy as np
+import subprocess
+import pandas as pd
+from io import StringIO
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -172,7 +175,28 @@ def get_class_names(dataset):
     return dataset_to_names[dataset]
 
 
-def test_single_label(model, logger, test_loader, criterion, classes_names):
+def log_gpu_utilization_csv(server_addr, dataset_name, node_id, round_no):
+    gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
+    node_gpu_metrics_dir = os.path.join(gpu_metrics_dir, node_id)
+    metrics_fields = ['timestamp', 'name', 'pstate', 'memory.total', 'memory.used', 'memory.free', 'utilization.gpu',
+                      'utilization.memory', 'encoder.stats.sessionCount', 'encoder.stats.averageFps',
+                      'encoder.stats.averageLatency', 'temperature.gpu', 'temperature.memory', 'power.draw',
+                      'power.limit', 'clocks.current.graphics', 'clocks.current.sm', 'clocks.current.memory']
+    format_options = ['csv', 'nounits']
+
+    metrics_string = subprocess.run(
+        ['nvidia-smi', f'--format={",".join(format_options)}', f'--query-gpu={",".join(metrics_fields)}'],
+        stdout=subprocess.PIPE).stdout.decode('utf-8')
+    df = pd.read_csv(StringIO(metrics_string), delimiter=', ')
+    df['dataset'] = dataset_name
+    df['node_id'] = node_id
+    df['round_no'] = round_no
+    gpu_metrics_file = os.path.join(node_gpu_metrics_dir, f'gpu_metrics_{dataset_name}_{node_id}_round_{round_no}.csv')
+    df.to_csv(gpu_metrics_file)
+
+
+def test_single_label(model, logger, test_loader, criterion, classes_names, server_address, d_name, client_id,
+                      round_no):
     test_running_loss = 0.0
     test_running_accuracy = 0.0
     model.eval()
@@ -199,6 +223,8 @@ def test_single_label(model, logger, test_loader, criterion, classes_names):
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n"
                             f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}\n\n")
+                # todo - make conditional with logging flag
+                log_gpu_utilization_csv(server_address, d_name, client_id, round_no)
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
     test_labels = test_labels.cpu().numpy().astype(np.int32)
@@ -216,7 +242,8 @@ def test_single_label(model, logger, test_loader, criterion, classes_names):
     return test_acc, test_loss, report_json
 
 
-def test_multi_label(model, logger, test_loader, criterion, classes_names):
+def test_multi_label(model, logger, test_loader, criterion, classes_names, server_address, d_name, client_id,
+                     round_no):
     test_running_loss = 0.0
 
     test_labels = torch.FloatTensor().to(DEVICE)
@@ -239,6 +266,8 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names):
             if batch_idx % 50 == 0:
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n")
+                # todo - make conditional with logging flag
+                log_gpu_utilization_csv(server_address, d_name, client_id, round_no)
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
     test_preds_prob = test_preds_prob.cpu().numpy()

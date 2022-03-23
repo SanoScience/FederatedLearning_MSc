@@ -39,9 +39,11 @@ BATCH_SIZE = 8
 LEARNING_RATE = 0.0001
 MODEL_NAME = 'DenseNet121'
 DATASET_TYPE = 'nih'
+SERVER_ADDR = ''
 HPC_LOG = False
 CLIENT_JOB_IDS = []
 HPC_METRICS_DF = None
+GPU_METRICS_DF = None
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -81,9 +83,16 @@ def get_slurm_stats(job_id, job_type):
     return df
 
 
+def update_gpu_stats():
+    # todo implement data logging on client side
+    # todo implement data gathering on server side
+    pass
+
+
 def log_hpc_usage(server_job_id):
     global CLIENT_JOB_IDS
     global HPC_METRICS_DF
+
     res_dir = results_dirname_generator()
     hpc_usage_dir = os.path.join(res_dir, 'hpc_metrics')
     if not os.path.exists(hpc_usage_dir):
@@ -93,6 +102,18 @@ def log_hpc_usage(server_job_id):
         client_ids_file = f'{server_job_id}_client_ids.txt'
         with open(client_ids_file) as f:
             CLIENT_JOB_IDS = [line.strip() for line in f]
+
+    server_addr = socket.gethostname()
+    gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
+    if os.path.exists(gpu_metrics_dir):
+        shutil.rmtree(gpu_metrics_dir)
+    os.mkdir(gpu_metrics_dir)
+
+    for client_id in range(CLIENTS):
+        client_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_{client_id}')
+        os.mkdir(client_gpu_metrics_dir)
+    server_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_server')
+    os.mkdir(server_gpu_metrics_dir)
 
     server_metrics_df = get_slurm_stats(server_job_id, 'server')
 
@@ -107,8 +128,7 @@ def log_hpc_usage(server_job_id):
 
     metrics_file = os.path.join(hpc_usage_dir, f'hpc_metrics_{ROUND}.csv')
     HPC_METRICS_DF.to_csv(metrics_file)
-
-    # TODO gather nvidia-smi from clients
+    update_gpu_stats()
 
 
 class StrategyFactory:
@@ -154,12 +174,13 @@ class StrategyFactory:
 
             if get_type_of_dataset(self.d) == 'multi-class':
                 test_avg_auc, test_loss, report_json, auc_json = test_multi_label(model, LOGGER, test_loader, criterion,
-                                                                                  classes_names)
+                                                                                  classes_names, SERVER_ADDR, self.d,
+                                                                                  -1, ROUND)
                 avg_auc.append(test_avg_auc)
                 aucs.append(auc_json)
             else:
                 test_acc, test_loss, report_json = test_single_label(model, LOGGER, test_loader, criterion,
-                                                                     classes_names)
+                                                                     classes_names, SERVER_ADDR, self.d, -1, ROUND)
                 acc.append(test_acc)
 
             loss.append(test_loss)
@@ -226,7 +247,7 @@ class StrategyFactory:
 @click.option('--hpc-log', is_flag=True, help='Whether to log HPC usage metrics')
 def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASET_TYPE, HPC_LOG
+        DATASET_TYPE, HPC_LOG, SERVER_ADDR
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -238,6 +259,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
     MODEL_NAME = m
     DATASET_TYPE = d
     HPC_LOG = hpc_log
+    SERVER_ADDR = server_addr = socket.gethostname()
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
     strategy = factory.get_strategy()
@@ -247,7 +269,6 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
         shutil.rmtree(res_dir)
     os.mkdir(res_dir)
 
-    server_addr = socket.gethostname()
     # Start server
     LOGGER.info(f"Starting server on {server_addr}")
     fl.server.start_server(

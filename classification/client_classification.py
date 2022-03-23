@@ -18,7 +18,7 @@ from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, N
 from data_selector import IIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
-    get_type_of_dataset, get_class_names
+    get_type_of_dataset, get_class_names, log_gpu_utilization_csv
 
 import torch.nn.functional as F
 import click
@@ -26,6 +26,10 @@ import pandas as pd
 
 IMAGE_SIZE = 224
 LIMIT = -1
+CLIENT_ID = 0
+D_NAME = 'nih'
+SERVER_ADDRESS = ''
+ROUND = 0
 
 hdlr = logging.StreamHandler()
 LOGGER = logging.getLogger(__name__)
@@ -68,6 +72,8 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
+                if batch_idx % 20 == 0:
+                    log_gpu_utilization_csv(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
         preds = preds.cpu().numpy().astype(np.int32)
         labels = labels.cpu().numpy().astype(np.int32)
         LOGGER.info("Training report:")
@@ -181,12 +187,13 @@ class ClassificationClient(fl.client.NumPyClient):
         LOGGER.info("Parameters loaded")
 
     def fit(self, parameters, config):
+        global D_NAME
         self.set_parameters(parameters)
 
         batch_size = int(config["batch_size"])
         epochs = int(config["local_epochs"])
         lr = float(config["learning_rate"])
-        d_name = config["dataset_type"]
+        D_NAME = d_name = config["dataset_type"]
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
@@ -211,9 +218,13 @@ class ClassificationClient(fl.client.NumPyClient):
 @click.option('--c', default=1, type=int, help='Clients number')
 @click.option('--m', default='DenseNet121', type=str, help='Model used for training')
 def run_client(sa, c_id, c, m):
+    global CLIENT_ID
+    global SERVER_ADDRESS
     # Start client
     LOGGER.info(f"Cpu count: {os.cpu_count()}")
     LOGGER.info("Connecting to:" + f"{sa}:8087")
+    CLIENT_ID = c_id
+    SERVER_ADDRESS = sa
     fl.client.start_numpy_client(f"{sa}:8087",
                                  client=ClassificationClient(c_id, c, m))
 
