@@ -1,6 +1,6 @@
 import logging
 import socket
-
+import time
 import click
 import flwr as fl
 import pandas as pd
@@ -13,11 +13,12 @@ from segmentation_models_pytorch import UnetPlusPlus
 
 loss = []
 jacc = []
+time_measurements = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 1024
+IMAGE_SIZE = 512
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -84,8 +85,10 @@ def get_eval_fn(net):
 
         loss.append(val_loss)
         jacc.append(val_jacc)
+        time_measurements.append(time.time())
         if MAX_ROUND == ROUND:
-            df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
+            df = pd.DataFrame.from_dict(
+                {'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc, 'time': time_measurements})
             df.to_csv(os.path.join(res_dir, 'result.csv'))
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}

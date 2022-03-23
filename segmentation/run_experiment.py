@@ -14,7 +14,7 @@ parameters = {'local_epochs': [1, 2, 3, 4, 5],
 
 def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds=15):
     output = subprocess.check_output(
-        ['sbatch', 'v100_server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
+        ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
          str(batch_size), optimizer, str(ff), str(mf)])
     print('sbatch:', output)
     result = re.search('Submitted batch job (\d*)', output.decode('utf-8'))
@@ -45,12 +45,13 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         time.sleep(60)
     print("Starting all clients in 100s!")
     time.sleep(100)
-    output = subprocess.check_output(['./v100_run_clients.sh', node.decode('utf-8'), str(clients_count)])
+    output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 1 hour.")
-    time.sleep(3600)
+    print("Starting next job in 3 hours.")
+    time.sleep(60 * 60 * 3)
 
 
-for le in [2, 3]:
-    for mf in [1, 2, 3]:
-        run_single_experiment(le, 2, clients_count=3, ff=0.3, lr=0.001, optimizer='Adagrad', mf=mf)
+for le in [1, 2, 3]:
+    for ff in [0.5, 0.75, 1.0]:
+        for bs in [4, 8, 16]:
+            run_single_experiment(local_epochs=le, batch_size=bs, clients_count=8, ff=1.0, lr=0.001, optimizer='Adagrad', mf=5)
