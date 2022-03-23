@@ -189,13 +189,14 @@ class ClassificationClient(fl.client.NumPyClient):
         LOGGER.info("Parameters loaded")
 
     def fit(self, parameters, config):
-        global D_NAME
+        global D_NAME, ROUND
         self.set_parameters(parameters)
 
         batch_size = int(config["batch_size"])
         epochs = int(config["local_epochs"])
         lr = float(config["learning_rate"])
         D_NAME = d_name = config["dataset_type"]
+        ROUND = config["round_no"]
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
