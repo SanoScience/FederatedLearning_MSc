@@ -51,7 +51,9 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(60 * 60)
 
 
-for bs in [8, 4]:
-    for le in [1, 2, 3]:
-        for ff in [0.5, 0.75, 1.0]:
-            run_single_experiment(local_epochs=le, batch_size=bs, clients_count=8, ff=1.0, lr=0.001, optimizer='Adagrad', mf=5)
+for optimizer in ['Adagrad', 'Adam']:
+    for bs in [8, 4]:
+        for le in [1, 2, 3]:
+            for ff in [0.5, 0.75, 1.0]:
+                run_single_experiment(local_epochs=le, batch_size=bs, clients_count=8, ff=ff, lr=0.001,
+                                      optimizer=optimizer, mf=8 * ff)
