@@ -55,7 +55,7 @@ clients_count = 8
 for optimizer in ['Adagrad', 'Adam']:
     for lr in [0.001, 0.0001, 0.0005]:
         for bs in [8, 4, 16]:
-            for le in [1, 2, 3]:
+            for le in [3, 2, 1]:
                 for ff in [0.5, 0.75, 1.0]:
                     run_single_experiment(local_epochs=le, batch_size=bs, clients_count=clients_count, ff=ff, lr=lr,
                                           optimizer=optimizer, mf=int(clients_count * ff))
