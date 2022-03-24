@@ -47,11 +47,11 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(100)
     output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 3 hours.")
-    time.sleep(60 * 60 * 3)
+    print("Starting next job in 1 hour.")
+    time.sleep(60 * 60)
 
 
-for le in [1, 2, 3]:
-    for ff in [0.5, 0.75, 1.0]:
-        for bs in [4, 8, 16]:
+for bs in [8, 4]:
+    for le in [1, 2, 3]:
+        for ff in [0.5, 0.75, 1.0]:
             run_single_experiment(local_epochs=le, batch_size=bs, clients_count=8, ff=1.0, lr=0.001, optimizer='Adagrad', mf=5)
