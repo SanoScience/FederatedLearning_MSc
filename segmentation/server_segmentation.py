@@ -18,7 +18,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 512
+IMAGE_SIZE = 256
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -89,7 +89,9 @@ def get_eval_fn(net):
         if MAX_ROUND == ROUND:
             df = pd.DataFrame.from_dict(
                 {'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc, 'time': time_measurements})
-            df.to_csv(os.path.join(res_dir, 'result.csv'))
+            res_path = os.path.join(res_dir, 'result.csv')
+            df.to_csv(res_path)
+            logger.info(f"CSV with results saved: {res_path}")
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
