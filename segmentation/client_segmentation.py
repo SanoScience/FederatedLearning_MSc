@@ -134,6 +134,7 @@ def main():
         try:
             fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
         except Exception as e:
+            print("Exception ocurred")
             print(e)
             time.sleep(120)
 
