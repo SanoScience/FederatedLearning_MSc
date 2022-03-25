@@ -18,7 +18,7 @@ from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, N
 from data_selector import IIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
-    get_type_of_dataset, get_class_names, log_gpu_utilization_csv
+    get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir
 
 import torch.nn.functional as F
 import click
@@ -40,6 +40,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def train_single_label(model, train_loader, criterion, optimizer, classes_names, epochs):
+    make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         LOGGER.info(f"Starting epoch {epoch + 1} / {epochs}")
@@ -87,6 +88,7 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
 
 
 def train_multi_label(model, train_loader, criterion, optimizer, classes_names, epochs):
+    make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         LOGGER.info(f"Starting epoch {epoch + 1} / {epochs}")

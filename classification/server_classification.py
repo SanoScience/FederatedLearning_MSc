@@ -17,6 +17,7 @@ from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder, NDArrayDecoder
 
 import torchvision
+import glob
 
 from utils import get_state_dict, test_single_label, get_beton_data_paths, get_model, get_class_names, \
     get_type_of_dataset, get_dataset_classes_count, test_multi_label
@@ -43,7 +44,7 @@ SERVER_ADDR = ''
 HPC_LOG = False
 CLIENT_JOB_IDS = []
 HPC_METRICS_DF = None
-GPU_METRICS_DF = None
+GPU_METRICS = []
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -84,8 +85,18 @@ def get_slurm_stats(job_id, job_type):
 
 
 def update_gpu_stats():
-    # todo implement data gathering on server side
-    pass
+    global GPU_METRICS
+    server_addr = socket.gethostname()
+    gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
+    round_path = os.path.join(gpu_metrics_dir, '*', str(ROUND), '*.csv')
+    csv_files = glob.glob(round_path)
+    round_df = pd.concat((pd.read_csv(f) for f in csv_files), ignore_index=True)
+    GPU_METRICS.append(round_df)
+    round_merged_df = pd.concat(GPU_METRICS, ignore_index=True)
+
+    res_dir = results_dirname_generator()
+    gpu_final_metrics_path = os.path.join(res_dir, 'gpu_metrics', f'gpu_metrics_{ROUND}.csv')
+    round_merged_df.to_csv(gpu_final_metrics_path)
 
 
 def make_gpu_usage_dirs():
@@ -94,6 +105,11 @@ def make_gpu_usage_dirs():
     if os.path.exists(gpu_metrics_dir):
         shutil.rmtree(gpu_metrics_dir)
     os.mkdir(gpu_metrics_dir)
+    res_dir = results_dirname_generator()
+    gpu_final_metrics_dir = os.path.join(res_dir, 'gpu_metrics')
+    if os.path.exists(gpu_final_metrics_dir):
+        shutil.rmtree(gpu_final_metrics_dir)
+    os.mkdir(gpu_final_metrics_dir)
     for client_id in range(CLIENTS):
         client_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_{client_id}')
         os.mkdir(client_gpu_metrics_dir)
@@ -212,6 +228,7 @@ class StrategyFactory:
 
             if HPC_LOG:
                 log_hpc_usage(os.environ["SLURM_JOB_ID"])
+                update_gpu_stats()
 
             ROUND += 1
 
