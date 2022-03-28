@@ -76,12 +76,13 @@ def results_dirname_generator():
            f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
 
 
-def get_slurm_stats(job_id, job_type):
+def get_slurm_stats(job_id, job_type, node_id):
     metrics = subprocess.run(['sstat', job_id, '--parsable2', '--noconvert'], stdout=subprocess.PIPE)
     metrics_string = metrics.stdout.decode('utf-8')
     df = pd.read_csv(StringIO(metrics_string), delimiter='|')
     df['job_type'] = job_type
     df['round'] = ROUND
+    df['node_id'] = node_id
     return df
 
 
@@ -134,15 +135,15 @@ def log_hpc_usage(server_job_id):
             with open(client_ids_file) as f:
                 CLIENT_JOB_IDS = [line.strip() for line in f]
 
-        server_metrics_df = get_slurm_stats(server_job_id, 'server')
+        server_metrics_df = get_slurm_stats(server_job_id, 'server', 0)
 
         if HPC_METRICS_DF is None:
             HPC_METRICS_DF = server_metrics_df
         else:
             HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, server_metrics_df], ignore_index=True)
 
-        for client_job_id in CLIENT_JOB_IDS:
-            client_metrics_df = get_slurm_stats(client_job_id, 'client')
+        for i, client_job_id in enumerate(CLIENT_JOB_IDS):
+            client_metrics_df = get_slurm_stats(client_job_id, 'client', i)
             HPC_METRICS_DF = pd.concat([HPC_METRICS_DF, client_metrics_df], ignore_index=True)
 
         metrics_file = os.path.join(hpc_usage_dir, f'hpc_metrics_{ROUND}.csv')
