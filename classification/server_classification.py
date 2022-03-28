@@ -19,8 +19,9 @@ from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder, NDArrayDecod
 import torchvision
 import glob
 
+from data_selector import IIDSelector
 from utils import get_state_dict, test_single_label, get_beton_data_paths, get_model, get_class_names, \
-    get_type_of_dataset, get_dataset_classes_count, test_multi_label
+    get_type_of_dataset, get_dataset_classes_count, test_multi_label, get_data_paths
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -45,6 +46,7 @@ HPC_LOG = False
 CLIENT_JOB_IDS = []
 HPC_METRICS_DF = None
 GPU_METRICS = []
+DOWNSAMPLE_TEST = True
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -58,6 +60,7 @@ aucs = []
 reports = []
 times = []
 learning_rates = []
+downsample_test = []
 
 
 def fit_config(rnd: int):
@@ -182,8 +185,19 @@ class StrategyFactory:
             'image': image_pipeline,
             'label': label_pipeline
         }
-        test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
-                             pipelines=pipelines)
+
+        if DOWNSAMPLE_TEST:
+            images_dir, _, test_subset, _ = get_data_paths(DATASET_TYPE)
+            df = pd.read_csv(test_subset)
+            dataset_len = len(df)
+            selector = IIDSelector()
+            ids = selector.get_ids(dataset_len, 0, 10)
+
+            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
+                                 pipelines=pipelines, ids=ids)
+        else:
+            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
+                                 pipelines=pipelines)
 
         classes_names = get_class_names(self.d)
 
@@ -208,6 +222,7 @@ class StrategyFactory:
             reports.append(report_json)
             times.append(time.time() - TIME_START)
             learning_rates.append(LEARNING_RATE)
+            downsample_test.append(DOWNSAMPLE_TEST)
 
             if len(loss[:-1]) != 0 and test_loss >= min(loss[:-1]):
                 LEARNING_RATE /= 10
@@ -216,11 +231,11 @@ class StrategyFactory:
             if get_type_of_dataset(self.d) == 'multi-class':
                 df = pd.DataFrame.from_dict(
                     {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'avg_auc': avg_auc, 'aucs': aucs,
-                     'report': reports, 'time': times, 'lr': learning_rates})
+                     'report': reports, 'time': times, 'lr': learning_rates, 'downsample_test': downsample_test})
             else:
                 df = pd.DataFrame.from_dict(
                     {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'report': reports,
-                     'time': times, 'lr': learning_rates})
+                     'time': times, 'lr': learning_rates, 'downsample_test': downsample_test})
 
             res_dir = results_dirname_generator()
             if len(loss[:-1]) != 0 and test_loss < min(loss[:-1]):
@@ -272,9 +287,10 @@ class StrategyFactory:
 @click.option('--m', default='DenseNet121', type=str, help='Model used for training')
 @click.option('--d', default='nih', type=str, help='Dataset used for training (nih)')
 @click.option('--hpc-log', is_flag=True, help='Whether to log HPC usage metrics')
-def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
+@click.option('--downsample-test', is_flag=True, help='Whether to downsample test set (to speed up FL process)')
+def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASET_TYPE, HPC_LOG, SERVER_ADDR
+        DATASET_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -286,6 +302,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log):
     MODEL_NAME = m
     DATASET_TYPE = d
     HPC_LOG = hpc_log
+    DOWNSAMPLE_TEST = downsample_test
     SERVER_ADDR = server_addr = socket.gethostname()
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
