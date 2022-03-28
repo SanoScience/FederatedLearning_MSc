@@ -18,7 +18,7 @@ from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, N
 from data_selector import IIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
-    get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir
+    get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv
 
 import torch.nn.functional as F
 import click
@@ -30,6 +30,7 @@ CLIENT_ID = 0
 D_NAME = 'nih'
 SERVER_ADDRESS = ''
 ROUND = 0
+HPC_LOG = True
 
 hdlr = logging.StreamHandler()
 LOGGER = logging.getLogger(__name__)
@@ -40,7 +41,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def train_single_label(model, train_loader, criterion, optimizer, classes_names, epochs):
-    make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
+    gpu_stats_dfs = []
+    if HPC_LOG:
+        make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         LOGGER.info(f"Starting epoch {epoch + 1} / {epochs}")
@@ -73,8 +76,8 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
-                if batch_idx % 100 == 0:
-                    log_gpu_utilization_csv(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND, epoch, batch_idx)
+                if HPC_LOG and batch_idx % 400 == 0:
+                    gpu_stats_dfs.append(log_gpu_utilization_csv(D_NAME, CLIENT_ID, ROUND, epoch, batch_idx))
         preds = preds.cpu().numpy().astype(np.int32)
         labels = labels.cpu().numpy().astype(np.int32)
         LOGGER.info("Training report:")
@@ -85,10 +88,14 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
 
         LOGGER.info(f" Training Loss: {train_loss:.4f}"
                     f" Training Acc: {train_acc:.4f}")
+        if HPC_LOG:
+            save_round_gpu_csv(gpu_stats_dfs, SERVER_ADDRESS, D_NAME, str(CLIENT_ID), ROUND)
 
 
 def train_multi_label(model, train_loader, criterion, optimizer, classes_names, epochs):
-    make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
+    gpu_stats_dfs = []
+    if HPC_LOG:
+        make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
     for epoch in range(epochs):
         start_time_epoch = time.time()
         LOGGER.info(f"Starting epoch {epoch + 1} / {epochs}")
@@ -119,8 +126,8 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
                 LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
-                if batch_idx % 100 == 0:
-                    log_gpu_utilization_csv(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND, epoch, batch_idx)
+                if HPC_LOG and batch_idx % 400 == 0:
+                    gpu_stats_dfs.append(log_gpu_utilization_csv(D_NAME, CLIENT_ID, ROUND, epoch, batch_idx))
 
         preds = preds.cpu().numpy().astype(np.int32)
         preds_prob = preds_prob.cpu().numpy()
@@ -138,6 +145,8 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
         LOGGER.info(f" Loss: {test_loss:.4f}")
         LOGGER.info(f" Avg AUC: {avg_auc:.4f}")
         LOGGER.info(f" AUCs: {aucs}")
+        if HPC_LOG:
+            save_round_gpu_csv(gpu_stats_dfs, SERVER_ADDRESS, D_NAME, str(CLIENT_ID), ROUND)
 
 
 def load_data(client_id, clients_number, d_name, bs):
@@ -191,7 +200,7 @@ class ClassificationClient(fl.client.NumPyClient):
         LOGGER.info("Parameters loaded")
 
     def fit(self, parameters, config):
-        global D_NAME, ROUND
+        global D_NAME, ROUND, HPC_LOG
         self.set_parameters(parameters)
 
         batch_size = int(config["batch_size"])
@@ -199,6 +208,7 @@ class ClassificationClient(fl.client.NumPyClient):
         lr = float(config["learning_rate"])
         D_NAME = d_name = config["dataset_type"]
         ROUND = config["round_no"]
+        HPC_LOG = config["hpc_log"]
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)

@@ -181,9 +181,7 @@ def make_round_gpu_metrics_dir(server_addr, dataset_name, node_id, round_no):
     os.mkdir(os.path.join(node_gpu_metrics_dir, str(round_no)))
 
 
-def log_gpu_utilization_csv(server_addr, dataset_name, node_id, round_no, epoch_no, batch_no):
-    gpu_metrics_dir = f'gpu_metrics_cache_{server_addr}'
-    node_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{dataset_name}_{node_id}')
+def log_gpu_utilization_csv(dataset_name, node_id, round_no, epoch_no, batch_no):
     metrics_fields = ['timestamp', 'name', 'pstate', 'memory.total', 'memory.used', 'memory.free', 'utilization.gpu',
                       'utilization.memory', 'encoder.stats.sessionCount', 'encoder.stats.averageFps',
                       'encoder.stats.averageLatency', 'temperature.gpu', 'temperature.memory', 'power.draw',
@@ -199,14 +197,23 @@ def log_gpu_utilization_csv(server_addr, dataset_name, node_id, round_no, epoch_
     df['round_no'] = round_no
     df['epoch_no'] = epoch_no
     df['batch_no'] = batch_no
+    return df
+
+
+def save_round_gpu_csv(gpu_stats_dfs, server_address, dataset_name, node_id, round_no):
+    gpu_metrics_dir = f'gpu_metrics_cache_{server_address}'
+    node_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{dataset_name}_{node_id}')
     gpu_metrics_file = os.path.join(node_gpu_metrics_dir, str(round_no),
-                                    f'gpu_metrics_{dataset_name}_{node_id}_round_{round_no}_epoch_{epoch_no}_batch_{batch_no}.csv')
-    df.to_csv(gpu_metrics_file)
+                                    f'gpu_metrics_{dataset_name}_{node_id}_round_{round_no}.csv')
+    gpu_metrics_df = pd.concat(gpu_stats_dfs, ignore_index=True)
+    gpu_metrics_df.to_csv(gpu_metrics_file, index=False)
 
 
 def test_single_label(model, logger, test_loader, criterion, classes_names, server_address, d_name, client_id,
-                      round_no):
-    make_round_gpu_metrics_dir(server_address, d_name, client_id, round_no)
+                      round_no, hpc_log):
+    gpu_stats_dfs = []
+    if hpc_log:
+        make_round_gpu_metrics_dir(server_address, d_name, client_id, round_no)
     test_running_loss = 0.0
     test_running_accuracy = 0.0
     model.eval()
@@ -233,8 +240,8 @@ def test_single_label(model, logger, test_loader, criterion, classes_names, serv
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n"
                             f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}\n\n")
-                # todo - make conditional with logging flag
-                log_gpu_utilization_csv(server_address, d_name, client_id, round_no, 0, batch_idx)
+                if hpc_log and batch_idx % 400:
+                    gpu_stats_dfs.append(log_gpu_utilization_csv(d_name, client_id, round_no, 0, batch_idx))
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
     test_labels = test_labels.cpu().numpy().astype(np.int32)
@@ -248,13 +255,17 @@ def test_single_label(model, logger, test_loader, criterion, classes_names, serv
     test_acc = accuracy_score(test_labels, test_preds)
     logger.info(f" Test Loss: {test_loss:.4f}"
                 f" Test Acc: {test_acc:.4f}")
+    if hpc_log:
+        save_round_gpu_csv(gpu_stats_dfs, server_address, d_name, str(client_id), round_no)
 
     return test_acc, test_loss, report_json
 
 
 def test_multi_label(model, logger, test_loader, criterion, classes_names, server_address, d_name, client_id,
-                     round_no):
-    make_round_gpu_metrics_dir(server_address, d_name, client_id, round_no)
+                     round_no, hpc_log):
+    gpu_stats_dfs = []
+    if hpc_log:
+        make_round_gpu_metrics_dir(server_address, d_name, client_id, round_no)
     test_running_loss = 0.0
 
     test_labels = torch.FloatTensor().to(DEVICE)
@@ -277,8 +288,8 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
             if batch_idx % 50 == 0:
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n")
-                # todo - make conditional with logging flag
-                log_gpu_utilization_csv(server_address, d_name, client_id, round_no, 0, batch_idx)
+                if hpc_log and batch_idx % 400:
+                    gpu_stats_dfs.append(log_gpu_utilization_csv(d_name, client_id, round_no, 0, batch_idx))
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
     test_preds_prob = test_preds_prob.cpu().numpy()
@@ -301,5 +312,8 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
     logger.info(f" Test Loss: {test_loss:.4f}")
     logger.info(f" Test avg AUC: {avg_auc:.4f}")
     logger.info(f" Test AUCs: {aucs}")
+
+    if hpc_log:
+        save_round_gpu_csv(gpu_stats_dfs, server_address, d_name, str(client_id), round_no)
 
     return avg_auc, test_loss, report_json, aucs_json

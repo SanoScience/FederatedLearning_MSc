@@ -65,7 +65,8 @@ def fit_config(rnd: int):
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
         "dataset_type": DATASET_TYPE,
-        "round_no": ROUND
+        "round_no": ROUND,
+        "hpc_log": HPC_LOG
     }
     return config
 
@@ -192,13 +193,13 @@ class StrategyFactory:
             if get_type_of_dataset(self.d) == 'multi-class':
                 test_avg_auc, test_loss, report_json, auc_json = test_multi_label(model, LOGGER, test_loader, criterion,
                                                                                   classes_names, SERVER_ADDR, self.d,
-                                                                                  'server', ROUND)
+                                                                                  'server', ROUND, HPC_LOG)
                 avg_auc.append(test_avg_auc)
                 aucs.append(auc_json)
             else:
                 test_acc, test_loss, report_json = test_single_label(model, LOGGER, test_loader, criterion,
                                                                      classes_names, SERVER_ADDR, self.d, 'server',
-                                                                     ROUND)
+                                                                     ROUND, HPC_LOG)
                 acc.append(test_acc)
 
             loss.append(test_loss)
