@@ -240,7 +240,7 @@ def test_single_label(model, logger, test_loader, criterion, classes_names, serv
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n"
                             f"running_acc: {test_running_accuracy / (batch_idx + 1):.4f}\n\n")
-                if hpc_log and batch_idx % 400:
+                if hpc_log and batch_idx % 300 == 0:
                     gpu_stats_dfs.append(log_gpu_utilization_csv(d_name, client_id, round_no, 0, batch_idx))
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
@@ -288,7 +288,7 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
             if batch_idx % 50 == 0:
                 logger.info(f"batch_idx: {batch_idx}\n"
                             f"running_loss: {test_running_loss / (batch_idx + 1):.4f}\n")
-                if hpc_log and batch_idx % 400:
+                if hpc_log and batch_idx % 300 == 0:
                     gpu_stats_dfs.append(log_gpu_utilization_csv(d_name, client_id, round_no, 0, batch_idx))
 
     test_preds = test_preds.cpu().numpy().astype(np.int32)
