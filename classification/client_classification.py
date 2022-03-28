@@ -210,6 +210,8 @@ class ClassificationClient(fl.client.NumPyClient):
         ROUND = config["round_no"]
         HPC_LOG = config["hpc_log"]
 
+        LOGGER.info(f"Learning rate: {lr}")
+
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
 

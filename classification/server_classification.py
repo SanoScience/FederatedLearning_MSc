@@ -37,7 +37,7 @@ MAX_ROUNDS = 20
 MIN_FIT_CLIENTS = 3
 FRACTION_FIT = 0.1
 BATCH_SIZE = 8
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.01
 MODEL_NAME = 'DenseNet121'
 DATASET_TYPE = 'nih'
 SERVER_ADDR = ''
@@ -57,6 +57,7 @@ avg_auc = []
 aucs = []
 reports = []
 times = []
+learning_rates = []
 
 
 def fit_config(rnd: int):
@@ -187,7 +188,7 @@ class StrategyFactory:
         classes_names = get_class_names(self.d)
 
         def evaluate(weights):
-            global ROUND
+            global ROUND, LEARNING_RATE
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
 
@@ -206,15 +207,20 @@ class StrategyFactory:
             loss.append(test_loss)
             reports.append(report_json)
             times.append(time.time() - TIME_START)
+            learning_rates.append(LEARNING_RATE)
+
+            if len(loss[:-1]) != 0 and test_loss >= min(loss[:-1]):
+                LEARNING_RATE /= 10
+                LOGGER.info(f"No improvement in loss, updating learning rate, now lr= {LEARNING_RATE}")
 
             if get_type_of_dataset(self.d) == 'multi-class':
                 df = pd.DataFrame.from_dict(
                     {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'avg_auc': avg_auc, 'aucs': aucs,
-                     'report': reports, 'time': times})
+                     'report': reports, 'time': times, 'lr': learning_rates})
             else:
                 df = pd.DataFrame.from_dict(
                     {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'report': reports,
-                     'time': times})
+                     'time': times, 'lr': learning_rates})
 
             res_dir = results_dirname_generator()
             if len(loss[:-1]) != 0 and test_loss < min(loss[:-1]):
