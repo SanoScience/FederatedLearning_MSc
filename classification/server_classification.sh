@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
 #SBATCH -n 1
-#SBATCH -p plgrid-gpu-v100
+#SBATCH -p plgrid-gpu
 #SBATCH --gres=gpu:1
 #SBATCH -A plgsano2
 
