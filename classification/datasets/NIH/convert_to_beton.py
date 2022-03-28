@@ -13,7 +13,7 @@ from ffcv.fields import RGBImageField, NDArrayField
 
 images_dir, train_subset, test_subset, labels_file = get_data_paths('nih')
 
-for ds in [('nih-train-jpg90.beton', train_subset), ('nih-test-jpg90.beton', test_subset)]:
+for ds in [('nih-train-256-jpg90.beton', train_subset), ('nih-test-256-jpg90.beton', test_subset)]:
     dataset = NIHDataset(-1, 1, ds[1], labels_file, images_dir, -1)
     write_path = os.path.join(NIH_DATASET_PATH_BASE, ds[0])
 

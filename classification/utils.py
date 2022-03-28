@@ -157,8 +157,8 @@ def get_beton_data_paths(dataset):
         test_subset = os.path.join(RSNA_DATASET_PATH_BASE, 'test-jpg90.beton')
         return train_subset, test_subset
     if dataset == 'nih':
-        train_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-train-jpg90.beton')
-        test_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-test-jpg90.beton')
+        train_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-train-256-jpg90.beton')
+        test_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-test-256-jpg90.beton')
         return train_subset, test_subset
 
 
