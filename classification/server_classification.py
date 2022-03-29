@@ -187,8 +187,8 @@ class StrategyFactory:
         }
 
         if DOWNSAMPLE_TEST:
-            images_dir, _, test_subset, _ = get_data_paths(DATASET_TYPE)
-            df = pd.read_csv(test_subset)
+            images_dir, _, test_subset_list, _ = get_data_paths(DATASET_TYPE)
+            df = pd.read_csv(test_subset_list)
             dataset_len = len(df)
             selector = IIDSelector()
             ids = selector.get_ids(dataset_len, 0, 10)
