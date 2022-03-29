@@ -77,7 +77,7 @@ def fit_config(rnd: int):
 
 def results_dirname_generator():
     return f'd_{DATASET_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
-           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_IID'
 
 
 def get_slurm_stats(job_id, job_type, node_id):
