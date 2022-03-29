@@ -193,10 +193,10 @@ class StrategyFactory:
             selector = IIDSelector()
             ids = selector.get_ids(dataset_len, 0, 10)
 
-            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
+            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8, order=OrderOption.SEQUENTIAL,
                                  pipelines=pipelines, indices=ids)
         else:
-            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=12, order=OrderOption.SEQUENTIAL,
+            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8, order=OrderOption.SEQUENTIAL,
                                  pipelines=pipelines)
 
         classes_names = get_class_names(self.d)
