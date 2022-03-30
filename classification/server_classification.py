@@ -38,7 +38,10 @@ MAX_ROUNDS = 20
 MIN_FIT_CLIENTS = 3
 FRACTION_FIT = 0.1
 BATCH_SIZE = 8
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.0001
+MIN_LEARNING_RATE = 0.000001
+PATIENCE = 2
+CURRENT_PATIENCE = 2
 MODEL_NAME = 'DenseNet121'
 DATASET_TYPE = 'nih'
 SERVER_ADDR = ''
@@ -202,7 +205,7 @@ class StrategyFactory:
         classes_names = get_class_names(self.d)
 
         def evaluate(weights):
-            global ROUND, LEARNING_RATE
+            global ROUND, LEARNING_RATE, PATIENCE, CURRENT_PATIENCE
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
 
@@ -225,8 +228,13 @@ class StrategyFactory:
             downsample_test.append(DOWNSAMPLE_TEST)
 
             if len(loss[:-1]) != 0 and test_loss >= min(loss[:-1]):
-                LEARNING_RATE /= 10
-                LOGGER.info(f"No improvement in loss, updating learning rate, now lr= {LEARNING_RATE}")
+                CURRENT_PATIENCE -= 1
+                if CURRENT_PATIENCE == 0:
+                    LEARNING_RATE = max(LEARNING_RATE / 10, MIN_LEARNING_RATE)
+                    LOGGER.info(f"No improvement in loss, updating learning rate, now lr= {LEARNING_RATE}")
+                    CURRENT_PATIENCE = PATIENCE
+            else:
+                CURRENT_PATIENCE = PATIENCE
 
             if get_type_of_dataset(self.d) == 'multi-class':
                 df = pd.DataFrame.from_dict(
