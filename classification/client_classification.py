@@ -11,7 +11,8 @@ import torchvision
 from sklearn.metrics import classification_report, accuracy_score, roc_auc_score
 
 from ffcv.loader import Loader, OrderOption
-from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Convert, ToTensor
+from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Convert, ToTensor, RandomHorizontalFlip, \
+    RandomTranslate
 from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
@@ -159,10 +160,17 @@ def load_data(client_id, clients_number, d_name, bs):
 
     decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
-    image_pipeline = [decoder, ToTensor(), ToDevice(device), ToTorchImage(),
+    IMAGENET_MEAN = [123.675, 116.28, 103.53]
+    IMAGENET_STD = [58.395, 57.12, 57.375]
+
+    image_pipeline = [decoder,
+                      RandomHorizontalFlip(flip_prob=0.5),
+                      RandomTranslate(padding=10),
+                      Cutout(32, tuple(map(int, IMAGENET_MEAN))),
+                      ToTensor(), ToDevice(device), ToTorchImage(),
                       Convert(target_dtype=torch.float32),
-                      torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
-                                                       std=[58.395, 57.12, 57.375])]
+                      torchvision.transforms.Normalize(mean=IMAGENET_MEAN,
+                                                       std=IMAGENET_STD)]
 
     if get_type_of_dataset(d_name) == 'multi-class':
         label_pipeline = [NDArrayDecoder(), ToTensor(), ToDevice(device)]
