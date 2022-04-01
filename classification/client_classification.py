@@ -32,6 +32,7 @@ D_NAME = 'nih'
 SERVER_ADDRESS = ''
 ROUND = 0
 HPC_LOG = True
+HPC_LOG_FREQUENCY = 100
 
 hdlr = logging.StreamHandler()
 LOGGER = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Acc: {running_accuracy / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
-                if HPC_LOG and batch_idx % 300 == 0:
+                if HPC_LOG and batch_idx % HPC_LOG_FREQUENCY == 0:
                     gpu_stats_dfs.append(log_gpu_utilization_csv(D_NAME, CLIENT_ID, ROUND, epoch, batch_idx))
         preds = preds.cpu().numpy().astype(np.int32)
         labels = labels.cpu().numpy().astype(np.int32)
@@ -127,7 +128,7 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
                 LOGGER.info(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                             f" Loss: {running_loss / (batch_idx + 1):.4f}"
                             f" Time: {time.time() - start_time_epoch:2f}")
-                if HPC_LOG and batch_idx % 300 == 0:
+                if HPC_LOG and batch_idx % HPC_LOG_FREQUENCY == 0:
                     gpu_stats_dfs.append(log_gpu_utilization_csv(D_NAME, CLIENT_ID, ROUND, epoch, batch_idx))
 
         preds = preds.cpu().numpy().astype(np.int32)
