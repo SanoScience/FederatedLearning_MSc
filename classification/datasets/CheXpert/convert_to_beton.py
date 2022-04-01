@@ -11,7 +11,7 @@ from utils import get_data_paths, REPO_DATASETS_PATH_BASE
 from ffcv.writer import DatasetWriter
 from ffcv.fields import RGBImageField, NDArrayField
 
-images_dir, train_subset, test_subset = get_data_paths('chexpert')
+images_dir, train_subset, test_subset, _ = get_data_paths('chexpert')
 
 for ds in [('chexpert-train-256-jpg90.beton', train_subset), ('chexpert-test-256-jpg90.beton', test_subset)]:
     dataset = CheXpertDataset(-1, 1, ds[1], images_dir, -1)

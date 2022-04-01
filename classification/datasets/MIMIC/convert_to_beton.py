@@ -11,7 +11,7 @@ from utils import get_data_paths, MIMIC_DATASET_PATH_BASE
 from ffcv.writer import DatasetWriter
 from ffcv.fields import RGBImageField, NDArrayField
 
-images_dir, train_subset, test_subset = get_data_paths('mimic')
+images_dir, train_subset, test_subset, _ = get_data_paths('mimic')
 
 for ds in [('mimic-train-256-jpg90.beton', train_subset), ('mimic-test-256-jpg90.beton', test_subset)]:
     dataset = MIMICDataset(-1, 1, ds[1], images_dir, -1)

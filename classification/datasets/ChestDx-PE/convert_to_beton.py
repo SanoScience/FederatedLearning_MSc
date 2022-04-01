@@ -11,7 +11,7 @@ from utils import get_data_paths, CHESTDX_DATASET_PATH_BASE
 from ffcv.writer import DatasetWriter
 from ffcv.fields import RGBImageField, NDArrayField
 
-images_dir, test_subset = get_data_paths('chestdx-pe')
+images_dir, _, test_subset, _ = get_data_paths('chestdx-pe')
 
 dataset = ChestDxDataset(-1, 1, test_subset, images_dir, -1)
 write_path = os.path.join(CHESTDX_DATASET_PATH_BASE, 'chestdx-pe-test-256-jpg90.beton')
