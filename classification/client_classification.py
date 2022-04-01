@@ -158,7 +158,7 @@ def load_data(client_id, clients_number, d_name, bs):
     selector = IIDSelector()
     ids = selector.get_ids(dataset_len, client_id, clients_number)
 
-    decoder = RandomResizedCropRGBImageDecoder(size=(224, 224), scale=(0.5, 1.0), ratio=(0.75, 4/3))
+    decoder = RandomResizedCropRGBImageDecoder((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4/3))
 
     IMAGENET_MEAN = [123.675, 116.28, 103.53]
     IMAGENET_STD = [58.395, 57.12, 57.375]
