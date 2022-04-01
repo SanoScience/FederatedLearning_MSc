@@ -14,6 +14,7 @@ class CCCXRIPDataset(Dataset):
         # "Normal"=0, "Viral"=1, "COVID"=2, "Other"=3
         self.classes_names = ["Normal", "Viral", "COVID", "Other"]
         self.images_file_df = pd.read_csv(images_file)
+        self.images_count = len(self.images_file_df)
 
         # IMAGES
         self.images = [os.path.join(images_dir, row['path']) for _, row in self.images_file_df.iterrows()]
