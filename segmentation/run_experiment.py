@@ -12,7 +12,7 @@ parameters = {'local_epochs': [1, 2, 3, 4, 5],
               'backbone': ['EfficientNetB4', 'ResNet18']}
 
 
-def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds=15):
+def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds=12):
     output = subprocess.check_output(
         ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
          str(batch_size), optimizer, str(ff), str(mf)])
@@ -43,19 +43,19 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         node = split[7]
         print(f"{job_id}:{status}")
         time.sleep(60)
-    print("Starting all clients in 100s!")
-    time.sleep(100)
+    print("Starting all clients in 12m!")
+    time.sleep(12 * 60)
     output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 40 minutes.")
-    time.sleep(60 * 40)
+    print("Starting next job in 2.5h.")
+    time.sleep(60 * 60 * 2.5)
 
 
 clients_count = 8
-for optimizer in ['Adagrad', 'Adam']:
-    for lr in [0.001, 0.0001, 0.0005]:
+for optimizer in ['Adam', 'Adagrad']:
+    for lr in [0.001]:
         for bs in [8, 4, 16]:
-            for le in [3, 2, 1]:
+            for le in [3, 2]:
                 for ff in [0.5, 0.75, 1.0]:
                     run_single_experiment(local_epochs=le, batch_size=bs, clients_count=clients_count, ff=ff, lr=lr,
                                           optimizer=optimizer, mf=int(clients_count * ff))

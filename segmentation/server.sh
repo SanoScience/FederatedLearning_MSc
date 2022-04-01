@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --output=%j.txt
-#SBATCH --time=1:00:00
+#SBATCH --time=3:40:00
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu
 #SBATCH -A plgsano2
