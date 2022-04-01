@@ -13,13 +13,13 @@ from ffcv.fields import RGBImageField, NDArrayField
 
 images_dir, train_subset, test_subset = get_data_paths('chestdx')
 
-for ds in [('chestdx-train-jpg90.beton', train_subset), ('chestdx-test-jpg90.beton', test_subset)]:
+for ds in [('chestdx-train-256-jpg90.beton', train_subset), ('chestdx-test-256-jpg90.beton', test_subset)]:
     dataset = ChestDxDataset(-1, 1, ds[1], images_dir, -1)
     write_path = os.path.join(CHESTDX_DATASET_PATH_BASE, ds[0])
     writer = DatasetWriter(write_path, {
         'image': RGBImageField(
             write_mode='jpg',
-            max_resolution=512,
+            max_resolution=256,
             jpeg_quality=90,
         ),
         'label': NDArrayField(shape=(14,), dtype=np.dtype('float32'))

@@ -13,13 +13,13 @@ from ffcv.fields import RGBImageField, NDArrayField
 
 images_dir, train_subset, test_subset = get_data_paths('chexpert')
 
-for ds in [('chexpert-train-jpg90.beton', train_subset), ('chexpert-test-jpg90.beton', test_subset)]:
+for ds in [('chexpert-train-256-jpg90.beton', train_subset), ('chexpert-test-256-jpg90.beton', test_subset)]:
     dataset = CheXpertDataset(-1, 1, ds[1], images_dir, -1)
     write_path = os.path.join(REPO_DATASETS_PATH_BASE, ds[0])
     writer = DatasetWriter(write_path, {
         'image': RGBImageField(
             write_mode='jpg',
-            max_resolution=512,
+            max_resolution=256,
             jpeg_quality=90,
         ),
         'label': NDArrayField(shape=(13,), dtype=np.dtype('float32'))

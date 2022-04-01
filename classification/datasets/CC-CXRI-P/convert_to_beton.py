@@ -12,14 +12,14 @@ from ffcv.fields import RGBImageField, IntField
 
 images_dir, train_subset, test_subset = get_data_paths('cc-cxri-p')
 
-for ds in [('cc-cxri-p-train-jpg90.beton', train_subset), ('cc-cxri-p-test-jpg90.beton', test_subset)]:
+for ds in [('cc-cxri-p-train-256-jpg90.beton', train_subset), ('cc-cxri-p-test-256-jpg90.beton', test_subset)]:
     dataset = CCCXRIPDataset(-1, 1, ds[1], images_dir, -1)
     write_path = os.path.join(CHESTDX_DATASET_PATH_BASE, ds[0])
 
     writer = DatasetWriter(write_path, {
         'image': RGBImageField(
             write_mode='jpg',
-            max_resolution=512,
+            max_resolution=256,
             jpeg_quality=90,
         ),
         'label': IntField()
