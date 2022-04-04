@@ -126,8 +126,8 @@ def get_data_paths(dataset):
         return images_dir, train_subset, test_subset, None
     elif dataset == 'mimic':
         images_dir = MIMIC_DATASET_PATH_BASE
-        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_train.csv')
-        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/merged_test.csv')
+        train_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/frontal_train.csv')
+        test_subset = os.path.join(REPO_DATASETS_PATH_BASE, 'MIMIC/frontal_test.csv')
         return images_dir, train_subset, test_subset, None
 
 
