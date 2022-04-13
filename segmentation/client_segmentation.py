@@ -2,6 +2,7 @@ import logging
 import sys
 import time
 import warnings
+from opacus import PrivacyEngine
 
 import flwr as fl
 import numpy as np
@@ -26,18 +27,16 @@ if torch.cuda.is_available():
     logger.info(f"CUDA is available: {device_name}")
 
 
-def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
+def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engine: PrivacyEngine = None):
     """Train the network on the training set."""
-    if dice_only:
-        criterion = DiceLoss()
-    else:
-        criterion = DiceBCELoss()
-    if optimizer_name == 'Adam':
-        optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.0001)
-    elif optimizer_name == 'SGD':
-        optimizer = torch.optim.SGD(net.parameters(), lr=lr)
-    elif optimizer_name == 'Adagrad':
-        optimizer = torch.optim.Adagrad(net.parameters(), lr=lr)
+
+    criterion = get_criterion(dice_only)
+    optimizer = get_optimizer(lr, net, optimizer_name)
+    if privacy_engine:
+        net, optimizer, train_loader = privacy_engine.make_private(module=net, optimizer=optimizer,
+                                                                 data_loader=train_loader, noise_multiplier=1.0,
+                                                                 max_grad_norm=1.0)
+
     for epoch in range(epochs):
         start_time_epoch = time.time()
         logger.info('Starting epoch {}/{}'.format(epoch + 1, epochs))
@@ -66,6 +65,24 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
                                     loss.item(), jac.item(),
                                     time.time() - start_time_epoch))
             i += 1
+
+
+def get_optimizer(lr, net, optimizer_name):
+    if optimizer_name == 'Adam':
+        optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.0001)
+    elif optimizer_name == 'SGD':
+        optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    elif optimizer_name == 'Adagrad':
+        optimizer = torch.optim.Adagrad(net.parameters(), lr=lr)
+    return optimizer
+
+
+def get_criterion(dice_only):
+    if dice_only:
+        criterion = DiceLoss()
+    else:
+        criterion = DiceBCELoss()
+    return criterion
 
 
 def load_data(client_id, clients_number, batch_size, image_size):
@@ -97,6 +114,9 @@ def main():
 
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
+        def __init__(self):
+            self.privacy_engine = PrivacyEngine()
+
         def get_parameters(self):
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
