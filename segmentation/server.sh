@@ -4,7 +4,7 @@
 #SBATCH --time=3:40:00
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu
-#SBATCH -A plgsano2
+#SBATCH -A plgsano3
 #SBATCH --ntasks-per-node=10
 #SBATCH --gres=gpu:1
 
