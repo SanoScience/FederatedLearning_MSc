@@ -52,17 +52,17 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(60 * 60 * 2.5)
 
 
-clients_count = 8
+clients_count = 3
 for optimizer in ['Adam', 'Adagrad']:
     for lr in [0.001]:
-        for bs in [16, 8, 4]:
+        for bs in [16]:
             for le in [3, 2, 1]:
-                for ff in [0.5, 0.75, 1.0]:
+                for ff in [0.75, 1.0]:
                     rounds = 12
                     mf = int(clients_count * ff)
                     res_dir = f'fpn_resnet18_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
-                    f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID'
-                    if os.path.exists(res_dir) and os.path.exists(res_dir +"/" + "result.csv"):
+                              f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID'
+                    if os.path.exists(res_dir) and os.path.exists(res_dir + "/" + "result.csv"):
                         print("skipping: ", res_dir)
                         continue
                     run_single_experiment(local_epochs=le, batch_size=bs, clients_count=clients_count, ff=ff, lr=lr,
