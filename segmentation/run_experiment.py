@@ -55,7 +55,7 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
 clients_count = 3
 for optimizer in ['Adam', 'Adagrad']:
     for lr in [0.001]:
-        for bs in [4]:
+        for bs in [1]:
             for le in [3, 2, 1]:
                 for ff in [1.0, 0.75]:
                     rounds = 12
