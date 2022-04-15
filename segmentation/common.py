@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 import torch
-from segmentation_models_pytorch import FPN
+from segmentation_models_pytorch import FPN, UnetPlusPlus
 
 from segmentation.loss_functions import DiceLoss, DiceBCELoss
 
@@ -54,10 +54,7 @@ def validate(net, val_loader, device):
 
 
 def get_model():
-    return FPN('resnet18',
-               in_channels=1,
-               classes=1,
-               activation='sigmoid')
+    return FPN('vgg11', in_channels=1, classes=1, activation='sigmoid')
 
 
 def jaccard(outputs, targets):
