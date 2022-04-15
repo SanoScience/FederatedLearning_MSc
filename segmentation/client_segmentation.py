@@ -32,10 +32,14 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
 
     criterion = get_criterion(dice_only)
     optimizer = get_optimizer(lr, net, optimizer_name)
+    logger.info(privacy_engine!=None)
     if privacy_engine:
+        noise_multiplier=1.0
+        max_grad_norm=1.0
+        logger.info("Differential Privacy applied!")
         net, optimizer, train_loader = privacy_engine.make_private(module=net, optimizer=optimizer,
-                                                                 data_loader=train_loader, noise_multiplier=1.0,
-                                                                 max_grad_norm=1.0)
+                                                                 data_loader=train_loader, noise_multiplier=noise_multiplier,
+                                                                 max_grad_norm=max_grad_norm)
 
     for epoch in range(epochs):
         start_time_epoch = time.time()
@@ -138,7 +142,7 @@ def main():
                 train_loader = load_data(client_id, clients_number, batch_size, image_size)
 
             train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
-                  optimizer_name=optimizer_name)
+                  optimizer_name=optimizer_name, privacy_engine=self.privacy_engine)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
