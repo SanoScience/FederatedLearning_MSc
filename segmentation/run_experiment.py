@@ -44,8 +44,8 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         node = split[7]
         print(f"{job_id}:{status}")
         time.sleep(60)
-    print("Starting all clients in 12m!")
-    time.sleep(12 * 60)
+    print("Starting all clients in 6m!")
+    time.sleep(6 * 60)
     output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
     print("Starting next job in 2.5h.")

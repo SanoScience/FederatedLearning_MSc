@@ -145,9 +145,11 @@ def main():
 
             if not train_loader:
                 train_loader = load_data(client_id, clients_number, batch_size, image_size)
-
-            train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
-                  optimizer_name=optimizer_name, privacy_engine=self.privacy_engine)
+            try:
+                train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
+                      optimizer_name=optimizer_name, privacy_engine=self.privacy_engine)
+            except Exception as e:
+                logger.info(e)
             return self.get_parameters(), len(train_loader), {}
 
         def evaluate(self, parameters, config):
