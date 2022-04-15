@@ -161,9 +161,9 @@ def main():
     logger.info(f"Connecting to: {server_addr}:8081")
     while True:
         try:
-            fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
+            fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient(net))
         except Exception as e:
-            print("Exception ocurred")
+            print("Exception occurred")
             print(e)
             time.sleep(120)
 
