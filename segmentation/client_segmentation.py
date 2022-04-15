@@ -32,17 +32,10 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
 
     criterion = get_criterion(dice_only)
     optimizer = get_optimizer(lr, net, optimizer_name)
-    logger.info(privacy_engine != None)
     if privacy_engine:
-        noise_multiplier = 1.0
-        max_grad_norm = 1.0
         logger.info("Differential Privacy applied!")
         try:
-            net, optimizer, train_loader = privacy_engine.make_private(module=net, optimizer=optimizer,
-                                                                       data_loader=train_loader,
-                                                                       poisson_sampling=True,
-                                                                       noise_multiplier=noise_multiplier,
-                                                                       max_grad_norm=max_grad_norm)
+            net, optimizer, train_loader = privacy_engine.attach(optimizer=optimizer)
         except Exception as e:
             logger.info(e)
 
@@ -74,6 +67,9 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
                                     loss.item(), jac.item(),
                                     time.time() - start_time_epoch))
             i += 1
+
+    epsilon, _ = optimizer.privacy_engine.get_privacy_spent()
+    logger.info(f"epsilon = {epsilon:.2f}")
 
 
 def get_optimizer(lr, net, optimizer_name):
@@ -123,8 +119,10 @@ def main():
 
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
-        def __init__(self):
-            self.privacy_engine = PrivacyEngine()
+        def __init__(self, net):
+            self.privacy_engine = PrivacyEngine(net,
+                                                max_grad_norm=1.0,
+                                                noise_multiplier=1.0)
 
         def get_parameters(self):
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
