@@ -48,8 +48,8 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(12 * 60)
     output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 2.5h.")
-    time.sleep(60 * 60 * 2.5)
+    print("Starting next job in 3h.")
+    time.sleep(60 * 60 * 3)
 
 
 clients_count = 8
@@ -60,7 +60,7 @@ for optimizer in ['Adam', 'Adagrad']:
                 for ff in [0.5, 0.75, 1.0]:
                     rounds = 12
                     mf = int(clients_count * ff)
-                    res_dir = f'unet++_resnet18_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
+                    res_dir = f'unet++_efficientnet-b0_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
                     f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID'
                     if os.path.exists(res_dir) and os.path.exists(res_dir +"/" + "result.csv"):
                         print("skipping: ", res_dir)
