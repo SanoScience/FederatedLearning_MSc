@@ -40,7 +40,7 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
         try:
             net, optimizer, train_loader = privacy_engine.make_private(module=net, optimizer=optimizer,
                                                                        data_loader=train_loader,
-                                                                       poisson_sampling=False,
+                                                                       poisson_sampling=True,
                                                                        noise_multiplier=noise_multiplier,
                                                                        max_grad_norm=max_grad_norm)
         except Exception as e:

@@ -55,9 +55,9 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
 clients_count = 3
 for optimizer in ['Adam', 'Adagrad']:
     for lr in [0.001]:
-        for bs in [16]:
+        for bs in [4]:
             for le in [3, 2, 1]:
-                for ff in [0.75, 1.0]:
+                for ff in [1.0, 0.75]:
                     rounds = 12
                     mf = int(clients_count * ff)
                     res_dir = f'dp_fpn_vgg11_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
