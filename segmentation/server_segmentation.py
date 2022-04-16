@@ -18,7 +18,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 256
+IMAGE_SIZE = 128
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'

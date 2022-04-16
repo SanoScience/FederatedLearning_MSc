@@ -61,7 +61,7 @@ for optimizer in ['Adam', 'Adagrad']:
                     rounds = 12
                     mf = int(clients_count * ff)
                     res_dir = f'dp_fpn_vgg11_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
-                              f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID'
+                              f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{128}_IID'
                     if os.path.exists(res_dir) and os.path.exists(res_dir + "/" + "result.csv"):
                         print("skipping: ", res_dir)
                         continue

@@ -35,7 +35,7 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
     if privacy_engine:
         logger.info("Differential Privacy applied!")
         try:
-            net, optimizer, train_loader = privacy_engine.attach(optimizer=optimizer)
+            privacy_engine.attach(optimizer=optimizer)
         except Exception as e:
             logger.info(e)
 
@@ -168,8 +168,8 @@ def main():
             client = SegmentationClient(net)
             fl.client.start_numpy_client(f"{server_addr}:8081", client=client)
         except Exception as e:
-            print("Exception occurred")
-            print(e)
+            logger.info("Exception occurred")
+            logger.info(e)
             time.sleep(120)
 
 
