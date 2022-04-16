@@ -38,6 +38,8 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name, privacy_engi
             privacy_engine.attach(optimizer=optimizer)
         except Exception as e:
             logger.info(e)
+    else:
+        logger.info("DP not applied!")
 
     for epoch in range(epochs):
         start_time_epoch = time.time()
@@ -142,7 +144,7 @@ def main():
 
             if not train_loader:
                 train_loader = load_data(client_id, clients_number, batch_size, image_size)
-            if not self.privacy_engine:
+            if not self.privacy_engine and noise_level > 0.001:
                 self.privacy_engine = PrivacyEngine(net,
                                                     batch_size=batch_size,
                                                     sample_size=len(train_loader),

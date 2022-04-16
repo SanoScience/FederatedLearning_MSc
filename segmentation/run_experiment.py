@@ -58,7 +58,7 @@ for optimizer in ['SGD']:
         for lr in [0.001, 0.01]:
             for bs in [8]:
                 for le in [3, 2]:
-                    for nl in [3.0, 1.0, 0.5]:
+                    for nl in [3.0, 1.0, 0.5, 0.0]:
                         rounds = 15
                         mf = int(clients_count * ff)
                         res_dir = f'dp_fpn_vgg11_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
