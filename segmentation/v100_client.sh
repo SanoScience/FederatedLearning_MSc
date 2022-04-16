@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --output=%j.txt
-#SBATCH --time=3:00:00
+#SBATCH --time=1:30:00
 #SBATCH --nodes=1
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1

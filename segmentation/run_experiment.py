@@ -48,18 +48,18 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
     time.sleep(6 * 60)
     output = subprocess.check_output(['./v100_run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 2.5h.")
-    time.sleep(60 * 60 * 2.5)
+    print("Starting next job in 1.5h.")
+    time.sleep(60 * 60 * 1.5)
 
 
 clients_count = 3
-for optimizer in ['SGD', 'Adam', 'Adagrad']:
+for optimizer in ['SGD']:
     for ff in [1.0, 0.75]:
-        for lr in [0.001]:
+        for lr in [0.001, 0.01]:
             for bs in [8]:
                 for le in [3, 2]:
-                    for nl in [0.5, 1.0, 1.5]:
-                        rounds = 12
+                    for nl in [3.0, 1.0, 0.5]:
+                        rounds = 15
                         mf = int(clients_count * ff)
                         res_dir = f'dp_fpn_vgg11_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
                                   f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID_noise_{nl}'
