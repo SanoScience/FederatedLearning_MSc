@@ -18,7 +18,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 128
+IMAGE_SIZE = 256
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -27,6 +27,7 @@ MIN_FIT_CLIENTS = 1
 FRACTION_FIT = 0.3
 TIME_BUDGET = 60
 LEARNING_RATE = 0.001
+NOISE_LEVEL = 1.0
 
 DICE_ONLY = False
 OPTIMIZER_NAME = 'Adam'
@@ -51,6 +52,7 @@ def fit_config(rnd: int):
         "learning_rate": LEARNING_RATE,
         "dice_only": DICE_ONLY,
         "optimizer_name": OPTIMIZER_NAME,
+        "noise_level": NOISE_LEVEL,
         "time_budget": TIME_BUDGET  # in minutes
     }
     return config
@@ -58,7 +60,7 @@ def fit_config(rnd: int):
 
 def results_dirname_generator():
     return f'dp_fpn_vgg11_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
-           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID_noise_{NOISE_LEVEL}'
 
 
 def get_eval_fn(net):
@@ -109,8 +111,9 @@ def get_eval_fn(net):
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
 @click.option('--o', default='Adam', type=str, help='Optimizer name (Adam, SGD, Adagrad')
-def run_server(le, a, c, r, mf, ff, bs, lr, o):
-    global OPTIMIZER_NAME, LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE
+@click.option('--nl', default=NOISE_LEVEL, type=float, help='Noise multiplier, for example: 1.0')
+def run_server(le, a, c, r, mf, ff, bs, lr, o, nl):
+    global OPTIMIZER_NAME, LOCAL_EPOCHS, FED_AGGREGATION_STRATEGY, CLIENTS, MAX_ROUND, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, NOISE_LEVEL
     LOCAL_EPOCHS = le
     FED_AGGREGATION_STRATEGY = a
     CLIENTS = c
@@ -120,9 +123,10 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     BATCH_SIZE = bs
     LEARNING_RATE = lr
     OPTIMIZER_NAME = o
+    NOISE_LEVEL = nl
 
     logger.info(
-        f"Configuration: le={LOCAL_EPOCHS}, clients={CLIENTS}, rounds={MAX_ROUND}, mf={MIN_FIT_CLIENTS}, ff={FRACTION_FIT}, bs={BATCH_SIZE}, lr={LEARNING_RATE}, opt={OPTIMIZER_NAME}")
+        f"Configuration: nl={NOISE_LEVEL}, le={LOCAL_EPOCHS}, clients={CLIENTS}, rounds={MAX_ROUND}, mf={MIN_FIT_CLIENTS}, ff={FRACTION_FIT}, bs={BATCH_SIZE}, lr={LEARNING_RATE}, opt={OPTIMIZER_NAME}")
 
     # Define model
     net = get_model().to(DEVICE)

@@ -138,6 +138,8 @@ def main():
             lr: float = config["learning_rate"]
             optimizer_name: str = config["optimizer_name"]
             dice_only = config["dice_only"]
+            noise_level: float = config["noise_level"]
+
             if not train_loader:
                 train_loader = load_data(client_id, clients_number, batch_size, image_size)
             if not self.privacy_engine:
@@ -145,7 +147,7 @@ def main():
                                                     batch_size=batch_size,
                                                     sample_size=len(train_loader),
                                                     max_grad_norm=1.0,
-                                                    noise_multiplier=1.0)
+                                                    noise_multiplier=noise_level)
 
             try:
                 train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
