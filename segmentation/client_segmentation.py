@@ -120,9 +120,7 @@ def main():
     # Flower client
     class SegmentationClient(fl.client.NumPyClient):
         def __init__(self, net):
-            self.privacy_engine = PrivacyEngine(net,
-                                                max_grad_norm=1.0,
-                                                noise_multiplier=1.0)
+            self.privacy_engine = None
 
         def get_parameters(self):
             return [val.cpu().numpy() for _, val in net.state_dict().items()]
@@ -140,9 +138,15 @@ def main():
             lr: float = config["learning_rate"]
             optimizer_name: str = config["optimizer_name"]
             dice_only = config["dice_only"]
-
             if not train_loader:
                 train_loader = load_data(client_id, clients_number, batch_size, image_size)
+            if not self.privacy_engine:
+                self.privacy_engine = PrivacyEngine(net,
+                                                    batch_size=batch_size,
+                                                    sample_size=len(train_loader),
+                                                    max_grad_norm=1.0,
+                                                    noise_multiplier=1.0)
+
             try:
                 train(net, train_loader, epochs=epochs, lr=lr, dice_only=dice_only,
                       optimizer_name=optimizer_name, privacy_engine=self.privacy_engine)
