@@ -8,7 +8,7 @@
 #SBATCH -n 1
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1
-#SBATCH -A plgsano2
+#SBATCH -A plgsano3
 
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate ffcv
