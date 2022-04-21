@@ -16,7 +16,7 @@ from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Conv
 from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
-from data_selector import IIDSelector
+from data_selector import IIDSelector, IncreasingSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
     get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv
@@ -151,13 +151,18 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
             save_round_gpu_csv(gpu_stats_dfs, SERVER_ADDRESS, D_NAME, str(CLIENT_ID), ROUND)
 
 
-def load_data(client_id, clients_number, d_name, bs):
+def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
     images_dir, train_subset, _, _ = get_data_paths(d_name)
     LOGGER.info(f"images_dir: {images_dir}")
     df = pd.read_csv(train_subset)
+
     dataset_len = len(df)
-    selector = IIDSelector()
-    ids = selector.get_ids(dataset_len, client_id, clients_number)
+    if data_selection == 'iid':
+        selector = IIDSelector()
+        ids = selector.get_ids(dataset_len, client_id, clients_number)
+    elif data_selection == 'increasing':
+        selector = IncreasingSelector()
+        ids = selector.get_ids(dataset_len, client_id, clients_number)
 
     decoder = RandomResizedCropRGBImageDecoder((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4/3))
 

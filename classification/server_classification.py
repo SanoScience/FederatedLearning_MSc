@@ -50,6 +50,7 @@ CLIENT_JOB_IDS = []
 HPC_METRICS_DF = None
 GPU_METRICS = []
 DOWNSAMPLE_TEST = True
+DATA_SELECTION = 'iid'
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -73,14 +74,15 @@ def fit_config(rnd: int):
         "learning_rate": LEARNING_RATE,
         "dataset_type": DATASET_TYPE,
         "round_no": ROUND,
-        "hpc_log": HPC_LOG
+        "hpc_log": HPC_LOG,
+        "data_selection": DATA_SELECTION
     }
     return config
 
 
 def results_dirname_generator():
     return f'd_{DATASET_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
-           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_IID'
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_data_selection_{DATA_SELECTION}'
 
 
 def get_slurm_stats(job_id, job_type, node_id):
@@ -255,6 +257,7 @@ class StrategyFactory:
                 torch.save(model.state_dict(),
                            f'{model_dir}/{MODEL_NAME}_{ROUND}_loss_{round(test_loss, 3)}')
 
+            df['data_selection'] = DATA_SELECTION
             df.to_csv(os.path.join(res_dir, 'result.csv'))
 
             if HPC_LOG:
@@ -296,9 +299,10 @@ class StrategyFactory:
 @click.option('--d', default='nih', type=str, help='Dataset used for training (nih)')
 @click.option('--hpc-log', is_flag=True, help='Whether to log HPC usage metrics')
 @click.option('--downsample-test', is_flag=True, help='Whether to downsample test set (to speed up FL process)')
-def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test):
+@click.option('--data-selection', default='iid', type=str, help='Kind of data selection strategy for clients')
+def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASET_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST
+        DATASET_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -311,6 +315,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test):
     DATASET_TYPE = d
     HPC_LOG = hpc_log
     DOWNSAMPLE_TEST = downsample_test
+    DATA_SELECTION = data_selection
     SERVER_ADDR = server_addr = socket.gethostname()
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
