@@ -31,6 +31,7 @@ CHEXPERT_MIMIC_CLASSES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema
                           "Fracture", "Lung Lesion", "Lung Opacity", "Pleural Effusion",
                           "Pleural Other", "Pneumonia", "Pneumothorax", "Support Devices"]
 
+CC_CXRI_P_CLASSES = ["Normal", "Viral", "COVID", "Other"]
 
 def accuracy(y_pred, y_true):
     y_pred = F.softmax(y_pred, dim=1)

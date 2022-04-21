@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class DataSelector(ABC):
@@ -27,3 +27,10 @@ class IncreasingSelector(DataSelector):
         end_id = start_id + chunk_size * (client_id + 1)
         return [i for i in
                 (range(start_id, end_id) if client_id < (number_of_clients - 1) else range(start_id, dataset_len))]
+
+
+# Assigns samples from one class to one client
+class NonIIDSelector(DataSelector):
+    def get_ids(self, dataset_df, client_id, class_names):
+        client_class = class_names[client_id]
+        return list(dataset_df[dataset_df['class'] == client_class].index.values)

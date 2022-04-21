@@ -16,10 +16,11 @@ from ffcv.transforms import ToDevice, ToTorchImage, Cutout, NormalizeImage, Conv
 from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
-from data_selector import IIDSelector, IncreasingSelector
+from data_selector import IIDSelector, IncreasingSelector, NonIIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
-    get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv
+    get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv, \
+    CC_CXRI_P_CLASSES
 
 import torch.nn.functional as F
 import click
@@ -163,6 +164,10 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
     elif data_selection == 'increasing':
         selector = IncreasingSelector()
         ids = selector.get_ids(dataset_len, client_id, clients_number)
+    elif data_selection == 'noniid':
+        # Supports only CC_CXRI_P at the moment
+        selector = NonIIDSelector()
+        ids = selector.get_ids(df, client_id, CC_CXRI_P_CLASSES)
 
     decoder = RandomResizedCropRGBImageDecoder((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4/3))
 

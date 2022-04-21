@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 from data_selector import IIDSelector
+from utils import CC_CXRI_P_CLASSES
 
 
 class CCCXRIPDataset(Dataset):
@@ -12,7 +13,7 @@ class CCCXRIPDataset(Dataset):
         super(CCCXRIPDataset, self).__init__()
 
         # "Normal"=0, "Viral"=1, "COVID"=2, "Other"=3
-        self.classes_names = ["Normal", "Viral", "COVID", "Other"]
+        self.classes_names = CC_CXRI_P_CLASSES
         self.images_file_df = pd.read_csv(images_file)
 
         # IMAGES
