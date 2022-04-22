@@ -15,4 +15,4 @@ conda activate ffcv
 module load plgrid/apps/cuda/11.0
 
 echo $1 $2 $3 $4
-python3 client_classification.py --sa $1 --c_id $2 --c $3 --m $4
+python3 client_classification.py --sa $1 --c_id $2 --c $3

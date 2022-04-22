@@ -75,7 +75,8 @@ def fit_config(rnd: int):
         "dataset_type": DATASET_TYPE,
         "round_no": ROUND,
         "hpc_log": HPC_LOG,
-        "data_selection": DATA_SELECTION
+        "data_selection": DATA_SELECTION,
+        "model_name": MODEL_NAME
     }
     return config
 

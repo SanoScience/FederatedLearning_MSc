@@ -20,7 +20,7 @@ from data_selector import IIDSelector, IncreasingSelector, NonIIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
     get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv, \
-    CC_CXRI_P_CLASSES
+    CC_CXRI_P_CLASSES, get_dataset_classes_count
 
 import torch.nn.functional as F
 import click
@@ -200,14 +200,12 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
 
 
 class ClassificationClient(fl.client.NumPyClient):
-    def __init__(self, client_id, clients_number, m_name):
-        # Load model
-        # TODO now 14 classes is hardcoded, should be possible to config
-        self.model = get_model(m_name, classes=14)
+    def __init__(self, client_id, clients_number):
         self.client_id = client_id
         self.clients_number = clients_number
         self.train_loader = None
         self.classes_names = None
+        self.model = None
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
@@ -220,7 +218,6 @@ class ClassificationClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         global D_NAME, ROUND, HPC_LOG
-        self.set_parameters(parameters)
 
         batch_size = int(config["batch_size"])
         epochs = int(config["local_epochs"])
@@ -229,6 +226,12 @@ class ClassificationClient(fl.client.NumPyClient):
         ROUND = config["round_no"]
         HPC_LOG = config["hpc_log"]
         data_selection = config["data_selection"]
+        model_name = config["model_name"]
+
+        if ROUND == 1:
+            self.model = get_model(model_name, classes=get_dataset_classes_count(d_name))
+
+        self.set_parameters(parameters)
 
         LOGGER.info(f"Learning rate: {lr}")
 
@@ -254,8 +257,7 @@ class ClassificationClient(fl.client.NumPyClient):
 @click.option('--sa', default='', type=str, help='Server address')
 @click.option('--c_id', default=0, type=int, help='Client id')
 @click.option('--c', default=1, type=int, help='Clients number')
-@click.option('--m', default='DenseNet121', type=str, help='Model used for training')
-def run_client(sa, c_id, c, m):
+def run_client(sa, c_id, c):
     global CLIENT_ID
     global SERVER_ADDRESS
     # Start client
@@ -264,7 +266,7 @@ def run_client(sa, c_id, c, m):
     CLIENT_ID = c_id
     SERVER_ADDRESS = sa
     fl.client.start_numpy_client(f"{sa}:8087",
-                                 client=ClassificationClient(c_id, c, m))
+                                 client=ClassificationClient(c_id, c))
 
 
 if __name__ == "__main__":
