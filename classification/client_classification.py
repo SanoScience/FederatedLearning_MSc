@@ -169,7 +169,7 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
         selector = NonIIDSelector()
         ids = selector.get_ids(df, client_id, CC_CXRI_P_CLASSES)
 
-    decoder = RandomResizedCropRGBImageDecoder((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4/3))
+    decoder = RandomResizedCropRGBImageDecoder((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4 / 3))
 
     IMAGENET_MEAN = [123.675, 116.28, 103.53]
     IMAGENET_STD = [58.395, 57.12, 57.375]
@@ -228,11 +228,13 @@ class ClassificationClient(fl.client.NumPyClient):
         D_NAME = d_name = config["dataset_type"]
         ROUND = config["round_no"]
         HPC_LOG = config["hpc_log"]
+        data_selection = config["data_selection"]
 
         LOGGER.info(f"Learning rate: {lr}")
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
-        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size)
+        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size,
+                                                          data_selection=data_selection)
 
         if get_type_of_dataset(d_name) == 'multi-class':
             criterion = nn.BCEWithLogitsLoss()
