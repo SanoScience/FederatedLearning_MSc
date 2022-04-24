@@ -2,6 +2,7 @@ curl https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installat
 sudo python3 install_gpu_driver.py
 sudo /opt/deeplearning/install-driver.sh
 
+
 # setup metrics
 sudo mkdir -p /opt/google
 cd /opt/google
@@ -19,7 +20,7 @@ cd /home/prz_jab98
 gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
 unzip chest_dataset.zip
 
-git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
+git clone https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
 sudo chmod -R 777 FederatedLearning_MSc
 cd FederatedLearning_MSc/segmentation
 
@@ -27,4 +28,4 @@ CURR_DIR=$PWD
 PARENT_DIR="$(dirname "$CURR_DIR")"
 export PYTHONPATH=$PARENT_DIR
 touch test.txt
-python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count} > logs.txt
+python3 client_segmentation.py ${address} ${index} ${node_count} > logs.txt
