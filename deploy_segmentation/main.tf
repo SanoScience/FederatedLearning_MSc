@@ -98,24 +98,8 @@ resource "google_compute_instance" "server" {
     scopes = [
       "cloud-platform"]
   }
-  metadata = {
-    startup-script = <<-EOF
-    sudo /opt/deeplearning/install-driver.sh
+  metadata_startup_script = file("./server_startup.sh.sh")
 
-    cd /home/prz_jab98
-    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
-    unzip chest_dataset.zip
-
-    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
-    sudo chmod -R 777 FederatedLearning_MSc
-    cd FederatedLearning_MSc/segmentation
-
-    CURR_DIR=$PWD
-    PARENT_DIR="$(dirname "$CURR_DIR")"
-    export PYTHONPATH=$PARENT_DIR
-    python3 server_segmentation.py --c ${var.node_count} --r ${var.rounds} --a ${var.fed_algo} --le ${var.local_epochs} --lr ${var.learning_rate} --bs ${var.batch_size} --o ${var.optimizer} --ff ${var.fraction_fit} --mf ${var.min_fit_clients} > logs.txt
-    EOF
-  }
 }
 
 
@@ -153,24 +137,7 @@ resource google_compute_instance "client" {
       "cloud-platform"]
   }
 
-  metadata = {
-    startup-script = <<-EOF
-    sudo /opt/deeplearning/install-driver.sh
-
-    cd /home/prz_jab98
-    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
-    unzip chest_dataset.zip
-
-    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
-    sudo chmod -R 777 FederatedLearning_MSc
-    cd FederatedLearning_MSc/segmentation
-
-    CURR_DIR=$PWD
-    PARENT_DIR="$(dirname "$CURR_DIR")"
-    export PYTHONPATH=$PARENT_DIR
-    python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count} > logs.txt
-    EOF
-  }
+  metadata_startup_script = file("./client_startup.sh")
 }
 
 output "instance_0_endpoint" {
