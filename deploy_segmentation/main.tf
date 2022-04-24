@@ -98,7 +98,7 @@ resource "google_compute_instance" "server" {
     scopes = [
       "cloud-platform"]
   }
-  metadata_startup_script = file("./server_startup.sh.sh")
+  metadata_startup_script = file("./server_startup.sh")
 
 }
 
