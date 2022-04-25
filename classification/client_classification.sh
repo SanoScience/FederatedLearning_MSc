@@ -8,7 +8,7 @@
 #SBATCH -n 1
 #SBATCH -p plgrid-gpu-v100
 #SBATCH --gres=gpu:1
-#SBATCH --mem=32000
+#SBATCH --mem=6000
 #SBATCH -A plgsano3-gpu
 
 source $SCRATCH/anaconda3/etc/profile.d/conda.sh
