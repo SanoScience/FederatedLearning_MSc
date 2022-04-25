@@ -17,6 +17,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 REPO_DATASETS_PATH_BASE = os.path.expandvars("$SCRATCH/FederatedLearning_MSc/classification/datasets")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 NIH_DATASET_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "NIH/")
+CC_CXRI_P_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "CC-CXRI-P/")
 CHESTDX_DATASET_PATH_BASE = os.path.expandvars(
     "$PLG_GROUPS_STORAGE/plggsano/fl_msc_classification/classification/China_X_ray")
 CHEXPERT_DATASET_PATH_BASE = os.path.expandvars("$PLG_GROUPS_STORAGE/plggsano/Chexpert/Chexpert_dataset")
@@ -32,6 +33,7 @@ CHEXPERT_MIMIC_CLASSES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema
                           "Pleural Other", "Pneumonia", "Pneumothorax", "Support Devices"]
 
 CC_CXRI_P_CLASSES = ["Normal", "Viral", "COVID", "Other"]
+
 
 def accuracy(y_pred, y_true):
     y_pred = F.softmax(y_pred, dim=1)
@@ -160,6 +162,10 @@ def get_beton_data_paths(dataset):
     if dataset == 'nih':
         train_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-train-256-jpg90.beton')
         test_subset = os.path.join(NIH_DATASET_PATH_BASE, 'nih-test-256-jpg90.beton')
+        return train_subset, test_subset
+    if dataset == 'cc-cxri-p':
+        train_subset = os.path.join(CC_CXRI_P_PATH_BASE, 'cc-cxri-p-train-256-jpg90.beton')
+        test_subset = os.path.join(CC_CXRI_P_PATH_BASE, 'cc-cxri-p-test-256-jpg90.beton')
         return train_subset, test_subset
 
 
