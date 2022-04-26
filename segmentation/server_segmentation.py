@@ -128,15 +128,18 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     net = get_model().to(DEVICE)
 
     # Define strategy
-    strategy = strategies[FED_AGGREGATION_STRATEGY](
+    strategy = fl.server.strategy.FedAdagrad(
         fraction_fit=FRACTION_FIT,
-        fraction_eval=0.75,
         min_fit_clients=MIN_FIT_CLIENTS,
+        fraction_eval=0.75,
         min_eval_clients=2,
         eval_fn=get_eval_fn(net),
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
         initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()]),
+        eta=1e-1,
+        eta_l=1e-1,
+        tau=1e-9
     )
 
     # Start server
