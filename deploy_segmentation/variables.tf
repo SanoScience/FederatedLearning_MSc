@@ -1,5 +1,5 @@
 variable "node_count" {
-  default = 8
+  default = 4
  }
 
 variable "rounds" {
@@ -7,7 +7,7 @@ variable "rounds" {
 }
 
 variable "fed_algo" {
-  default = "FedAvg"
+  default = "FedAdam"
 }
 
 variable "optimizer" {
@@ -31,7 +31,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 8
+  default = 4
 }
 
 variable "token" {
@@ -40,5 +40,4 @@ variable "token" {
 
 variable "dataset_bucket" {
   default = "fl-msc-segmentation-dataset"
-
 }
