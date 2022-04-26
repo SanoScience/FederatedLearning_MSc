@@ -27,6 +27,7 @@ unzip chest_dataset.zip
 git clone https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
 sudo chmod -R 777 FederatedLearning_MSc
 cd FederatedLearning_MSc/segmentation
+git checkout cloud
 
 echo 'Running FL'
 export PYTHONPATH=$(dirname $PWD)
