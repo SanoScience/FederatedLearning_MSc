@@ -228,7 +228,7 @@ class ClassificationClient(fl.client.NumPyClient):
         data_selection = config["data_selection"]
         model_name = config["model_name"]
 
-        if ROUND == 1:
+        if self.model is None:
             self.model = get_model(model_name, classes=get_dataset_classes_count(d_name))
 
         self.set_parameters(parameters)
