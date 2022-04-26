@@ -14,7 +14,7 @@ import subprocess
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToDevice, ToTorchImage, NormalizeImage, Convert, ToTensor
 from ffcv.transforms.common import Squeeze
-from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder, NDArrayDecoder
+from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
 import torchvision
 import glob
@@ -175,7 +175,8 @@ class StrategyFactory:
         _, test_subset = get_beton_data_paths(self.d)
         LOGGER.info(f"images_dir: {test_subset}")
 
-        image_pipeline = [SimpleRGBImageDecoder(), ToTensor(), ToDevice(DEVICE), ToTorchImage(),
+        image_pipeline = [RandomResizedCropRGBImageDecoder((224, 224), scale=(1.0, 1.0), ratio=(1.0, 1.0)), ToTensor(),
+                          ToDevice(DEVICE), ToTorchImage(),
                           Convert(target_dtype=torch.float32),
                           torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
                                                            std=[58.395, 57.12, 57.375])]
@@ -200,10 +201,10 @@ class StrategyFactory:
             ids = selector.get_ids(dataset_len, 0, 10)
 
             test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1, order=OrderOption.SEQUENTIAL,
-                                 pipelines=pipelines, indices=ids)
+                                 pipelines=pipelines, indices=ids, drop_last=False)
         else:
             test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1, order=OrderOption.SEQUENTIAL,
-                                 pipelines=pipelines)
+                                 pipelines=pipelines, drop_last=False)
 
         classes_names = get_class_names(self.d)
 

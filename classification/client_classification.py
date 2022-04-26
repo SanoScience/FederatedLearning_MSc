@@ -194,7 +194,7 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
     }
     train_subset_beton, _ = get_beton_data_paths(d_name)
     train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=1, order=OrderOption.SEQUENTIAL,
-                          pipelines=pipelines, indices=ids)
+                          pipelines=pipelines, indices=ids, drop_last=False)
 
     return train_loader, get_class_names(d_name)
 

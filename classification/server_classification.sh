@@ -17,4 +17,4 @@ conda activate ffcv
 which python
 
 echo $SLURM_JOB_NODELIST
-python3 server_classification.py --c $1 --r $2 --m $3 --d $4 --le $5 --lr $6 --bs $7 --mf $8 --ff $9 --data-selection ${10} --hpc-log --downsample-test
+python3 server_classification.py --c $1 --r $2 --m $3 --d $4 --le $5 --lr $6 --bs $7 --mf $8 --ff $9 --data-selection ${10} --hpc-log
