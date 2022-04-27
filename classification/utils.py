@@ -310,7 +310,11 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
 
     aucs = {}
     for i, c in enumerate(classes_names):
-        aucs[c] = roc_auc_score(test_labels.astype(np.float32)[:, i], test_preds_prob[:, i])
+        # Do not calculate ROC AUC for classes with 0 samples
+        positive_test_labels_count = sum(test_labels.astype(np.float32)[:, i] == 1.0)
+        negative_test_labels_count = sum(test_labels.astype(np.float32)[:, i] != 1.0)
+        if positive_test_labels_count > 0 and negative_test_labels_count > 0:
+            aucs[c] = roc_auc_score(test_labels.astype(np.float32)[:, i], test_preds_prob[:, i])
 
     aucs_json = json.dumps(aucs)
     avg_auc = np.mean(list(aucs.values()))
