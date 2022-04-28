@@ -171,7 +171,7 @@ class StrategyFactory:
         self.bs = bs
         self.lr = lr
         self.test_datasets = test_datasets
-        self.model = get_model(m, classes=get_dataset_classes_count(self.test_datasets))
+        self.model = get_model(m, classes=get_dataset_classes_count(self.test_datasets[0]))
 
     def get_eval_fn(self, model):
         image_pipeline = [RandomResizedCropRGBImageDecoder((224, 224), scale=(1.0, 1.0), ratio=(1.0, 1.0)), ToTensor(),
