@@ -18,6 +18,9 @@ REPO_DATASETS_PATH_BASE = os.path.expandvars("$SCRATCH/FederatedLearning_MSc/cla
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 NIH_DATASET_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "NIH/")
 CC_CXRI_P_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "CC-CXRI-P/")
+CHESTDX_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "ChestDx/")
+CHESTDX_PE_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "ChestDx-PE/")
+
 CHESTDX_DATASET_PATH_BASE = os.path.expandvars(
     "$PLG_GROUPS_STORAGE/plggsano/fl_msc_classification/classification/China_X_ray")
 CHEXPERT_DATASET_PATH_BASE = os.path.expandvars("$PLG_GROUPS_STORAGE/plggsano/Chexpert/Chexpert_dataset")
@@ -166,6 +169,14 @@ def get_beton_data_paths(dataset):
     if dataset == 'cc-cxri-p':
         train_subset = os.path.join(CC_CXRI_P_PATH_BASE, 'cc-cxri-p-train-256-jpg90.beton')
         test_subset = os.path.join(CC_CXRI_P_PATH_BASE, 'cc-cxri-p-test-256-jpg90.beton')
+        return train_subset, test_subset
+    if dataset == 'chestdx':
+        train_subset = os.path.join(CHESTDX_PATH_BASE, 'chestdx-train-256-jpg90.beton')
+        test_subset = os.path.join(CHESTDX_PATH_BASE, 'chestdx-test-256-jpg90.beton')
+        return train_subset, test_subset
+    if dataset == 'chestdx-pe':
+        train_subset = os.path.join(CHESTDX_PE_PATH_BASE, 'chestdx-pe-train-256-jpg90.beton')
+        test_subset = os.path.join(CHESTDX_PE_PATH_BASE, 'chestdx-pe-test-256-jpg90.beton')
         return train_subset, test_subset
 
 
