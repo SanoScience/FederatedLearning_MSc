@@ -363,7 +363,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_se
     SERVER_ADDR = server_addr = socket.gethostname()
     TEST_DATASETS = sorted(test_datasets.split(','))
 
-    factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
+    factory = StrategyFactory(le, c, mf, ff, bs, lr, m, TEST_DATASETS)
     strategy = factory.get_strategy()
 
     res_dir = results_dirname_generator()
