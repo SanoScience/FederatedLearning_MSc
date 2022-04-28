@@ -200,12 +200,13 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
 
 
 class ClassificationClient(fl.client.NumPyClient):
-    def __init__(self, client_id, clients_number):
+    def __init__(self, client_id, clients_number, dataset):
         self.client_id = client_id
         self.clients_number = clients_number
         self.train_loader = None
         self.classes_names = None
         self.model = None
+        self.dataset_name = dataset
 
     def get_parameters(self):
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
@@ -222,24 +223,24 @@ class ClassificationClient(fl.client.NumPyClient):
         batch_size = int(config["batch_size"])
         epochs = int(config["local_epochs"])
         lr = float(config["learning_rate"])
-        D_NAME = d_name = config["dataset_type"]
+        D_NAME = self.dataset_name
         ROUND = config["round_no"]
         HPC_LOG = config["hpc_log"]
         data_selection = config["data_selection"]
         model_name = config["model_name"]
 
         if self.model is None:
-            self.model = get_model(model_name, classes=get_dataset_classes_count(d_name))
+            self.model = get_model(model_name, classes=get_dataset_classes_count(self.dataset_name))
 
         self.set_parameters(parameters)
 
         LOGGER.info(f"Learning rate: {lr}")
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
-        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, d_name, batch_size,
+        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, self.dataset_name, batch_size,
                                                           data_selection=data_selection)
 
-        if get_type_of_dataset(d_name) == 'multi-class':
+        if get_type_of_dataset(self.dataset_name) == 'multi-class':
             criterion = nn.BCEWithLogitsLoss()
             train_multi_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
         else:
@@ -257,7 +258,8 @@ class ClassificationClient(fl.client.NumPyClient):
 @click.option('--sa', default='', type=str, help='Server address')
 @click.option('--c_id', default=0, type=int, help='Client id')
 @click.option('--c', default=1, type=int, help='Clients number')
-def run_client(sa, c_id, c):
+@click.option('--d', default='nih', type=str, help='Dataset on client')
+def run_client(sa, c_id, c, d):
     global CLIENT_ID
     global SERVER_ADDRESS
     # Start client
@@ -266,7 +268,7 @@ def run_client(sa, c_id, c):
     CLIENT_ID = c_id
     SERVER_ADDRESS = sa
     fl.client.start_numpy_client(f"{sa}:8087",
-                                 client=ClassificationClient(c_id, c))
+                                 client=ClassificationClient(c_id, c, d))
 
 
 if __name__ == "__main__":

@@ -14,5 +14,5 @@
 source $SCRATCH/anaconda3/etc/profile.d/conda.sh
 conda activate ffcv
 
-echo $1 $2 $3
-python3 client_classification.py --sa $1 --c_id $2 --c $3
+echo $1 $2 $3 $4
+python3 client_classification.py --sa $1 --c_id $2 --c $3 --d $4

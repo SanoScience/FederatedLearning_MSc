@@ -10,6 +10,8 @@ import os
 import shutil
 from io import StringIO
 import subprocess
+from collections import defaultdict
+import numpy as np
 
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToDevice, ToTorchImage, NormalizeImage, Convert, ToTensor
@@ -43,7 +45,7 @@ MIN_LEARNING_RATE = 0.000001
 PATIENCE = 2
 CURRENT_PATIENCE = 2
 MODEL_NAME = 'DenseNet121'
-DATASET_TYPE = 'nih'
+DATASETS_TYPE = 'nih'
 SERVER_ADDR = ''
 HPC_LOG = False
 CLIENT_JOB_IDS = []
@@ -51,17 +53,18 @@ HPC_METRICS_DF = None
 GPU_METRICS = []
 DOWNSAMPLE_TEST = True
 DATA_SELECTION = 'iid'
+TEST_DATASETS = ['nih']
 
 IMAGE_SIZE = 224
 LIMIT = -1
 
 TIME_START = time.time()
 
-loss = []
-acc = []
-avg_auc = []
-aucs = []
-reports = []
+loss_dict = defaultdict(list)
+acc_dict = defaultdict(list)
+avg_auc_dict = defaultdict(list)
+aucs_dict = defaultdict(list)
+reports_dict = defaultdict(list)
 times = []
 learning_rates = []
 downsample_test = []
@@ -72,7 +75,6 @@ def fit_config(rnd: int):
         "batch_size": BATCH_SIZE,
         "local_epochs": LOCAL_EPOCHS,
         "learning_rate": LEARNING_RATE,
-        "dataset_type": DATASET_TYPE,
         "round_no": ROUND,
         "hpc_log": HPC_LOG,
         "data_selection": DATA_SELECTION,
@@ -82,7 +84,7 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'd_{DATASET_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
+    return f'd_{DATASETS_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
            f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_data_selection_{DATA_SELECTION}'
 
 
@@ -123,9 +125,9 @@ def make_gpu_usage_dirs():
         shutil.rmtree(gpu_final_metrics_dir)
     os.mkdir(gpu_final_metrics_dir)
     for client_id in range(CLIENTS):
-        client_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_{client_id}')
+        client_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASETS_TYPE}_{client_id}')
         os.mkdir(client_gpu_metrics_dir)
-    server_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASET_TYPE}_server')
+    server_gpu_metrics_dir = os.path.join(gpu_metrics_dir, f'{DATASETS_TYPE}_server')
     os.mkdir(server_gpu_metrics_dir)
 
 
@@ -161,27 +163,24 @@ def log_hpc_usage(server_job_id):
 
 
 class StrategyFactory:
-    def __init__(self, le, c, mf, ff, bs, lr, m, d):
+    def __init__(self, le, c, mf, ff, bs, lr, m, test_datasets):
         self.le = le
         self.c = c
         self.mf = mf
         self.ff = ff
         self.bs = bs
         self.lr = lr
-        self.d = d
-        self.model = get_model(m, classes=get_dataset_classes_count(self.d))
+        self.test_datasets = test_datasets
+        self.model = get_model(m, classes=get_dataset_classes_count(self.test_datasets))
 
     def get_eval_fn(self, model):
-        _, test_subset = get_beton_data_paths(self.d)
-        LOGGER.info(f"images_dir: {test_subset}")
-
         image_pipeline = [RandomResizedCropRGBImageDecoder((224, 224), scale=(1.0, 1.0), ratio=(1.0, 1.0)), ToTensor(),
                           ToDevice(DEVICE), ToTorchImage(),
                           Convert(target_dtype=torch.float32),
                           torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53],
                                                            std=[58.395, 57.12, 57.375])]
 
-        if get_type_of_dataset(self.d) == 'multi-class':
+        if get_type_of_dataset(self.test_datasets[0]) == 'multi-class':
             label_pipeline = [NDArrayDecoder(), ToTensor(), ToDevice(DEVICE)]
             criterion = nn.BCEWithLogitsLoss()
         else:
@@ -193,45 +192,68 @@ class StrategyFactory:
             'label': label_pipeline
         }
 
-        if DOWNSAMPLE_TEST:
-            images_dir, _, test_subset_list, _ = get_data_paths(DATASET_TYPE)
-            df = pd.read_csv(test_subset_list)
-            dataset_len = len(df)
-            selector = IIDSelector()
-            ids = selector.get_ids(dataset_len, 0, 10)
+        test_loaders_dict = dict()
 
-            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1, order=OrderOption.SEQUENTIAL,
-                                 pipelines=pipelines, indices=ids, drop_last=False)
-        else:
-            test_loader = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1, order=OrderOption.SEQUENTIAL,
-                                 pipelines=pipelines, drop_last=False)
+        for t_dataset in self.test_datasets:
+            _, test_subset = get_beton_data_paths(t_dataset)
+            LOGGER.info(f"images_dir: {test_subset}")
+            if DOWNSAMPLE_TEST:
+                images_dir, _, test_subset_list, _ = get_data_paths(t_dataset)
+                df = pd.read_csv(test_subset_list)
+                dataset_len = len(df)
+                selector = IIDSelector()
+                # Downsample dataset by factor of 10
+                ids = selector.get_ids(dataset_len, 0, 10)
 
-        classes_names = get_class_names(self.d)
+                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1,
+                                                      order=OrderOption.SEQUENTIAL, pipelines=pipelines, indices=ids,
+                                                      drop_last=False)
+            else:
+                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1,
+                                                      order=OrderOption.SEQUENTIAL, pipelines=pipelines,
+                                                      drop_last=False)
+
+        # Assumes all datasets have the same classes
+        classes_names = get_class_names(self.test_datasets[0])
 
         def evaluate(weights):
             global ROUND, LEARNING_RATE, PATIENCE, CURRENT_PATIENCE
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
 
-            if get_type_of_dataset(self.d) == 'multi-class':
-                test_avg_auc, test_loss, report_json, auc_json = test_multi_label(model, LOGGER, test_loader, criterion,
-                                                                                  classes_names, SERVER_ADDR, self.d,
-                                                                                  'server', ROUND, HPC_LOG)
-                avg_auc.append(test_avg_auc)
-                aucs.append(auc_json)
-            else:
-                test_acc, test_loss, report_json = test_single_label(model, LOGGER, test_loader, criterion,
-                                                                     classes_names, SERVER_ADDR, self.d, 'server',
-                                                                     ROUND, HPC_LOG)
-                acc.append(test_acc)
+            for t_dataset in TEST_DATASETS:
+                if get_type_of_dataset(t_dataset) == 'multi-class':
+                    test_avg_auc, test_loss, report_json, auc_json = test_multi_label(model, LOGGER,
+                                                                                      test_loaders_dict[t_dataset],
+                                                                                      criterion,
+                                                                                      classes_names, SERVER_ADDR,
+                                                                                      t_dataset,
+                                                                                      'server', ROUND, HPC_LOG)
+                    avg_auc_dict[t_dataset].append(test_avg_auc)
+                    aucs_dict[t_dataset].append(auc_json)
+                else:
+                    test_acc, test_loss, report_json = test_single_label(model, LOGGER, test_loaders_dict[t_dataset],
+                                                                         criterion,
+                                                                         classes_names, SERVER_ADDR, t_dataset,
+                                                                         'server',
+                                                                         ROUND, HPC_LOG)
+                    acc_dict[t_dataset].append(test_acc)
 
-            loss.append(test_loss)
-            reports.append(report_json)
+                loss_dict[t_dataset].append(test_loss)
+                reports_dict[t_dataset].append(report_json)
+
             times.append(time.time() - TIME_START)
             learning_rates.append(LEARNING_RATE)
             downsample_test.append(DOWNSAMPLE_TEST)
 
-            if len(loss[:-1]) != 0 and test_loss >= min(loss[:-1]):
+            should_decrease_lr = True
+
+            for t_dataset in self.test_datasets:
+                should_decrease_lr = should_decrease_lr and (
+                        len(loss_dict[t_dataset][:-1]) != 0 and loss_dict[t_dataset][-1] >= min(
+                    loss_dict[t_dataset][:-1]))
+
+            if should_decrease_lr:
                 CURRENT_PATIENCE -= 1
                 if CURRENT_PATIENCE == 0:
                     LEARNING_RATE = max(LEARNING_RATE / 10, MIN_LEARNING_RATE)
@@ -240,24 +262,40 @@ class StrategyFactory:
             else:
                 CURRENT_PATIENCE = PATIENCE
 
-            if get_type_of_dataset(self.d) == 'multi-class':
-                df = pd.DataFrame.from_dict(
-                    {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'avg_auc': avg_auc, 'aucs': aucs,
-                     'report': reports, 'time': times, 'lr': learning_rates, 'downsample_test': downsample_test})
+            if get_type_of_dataset(self.test_datasets[0]) == 'multi-class':
+                res_dict = {}
+                for t_dataset in self.test_datasets:
+                    res_dict = res_dict | {f'{t_dataset}#loss': loss_dict[t_dataset],
+                                           f'{t_dataset}#avg_auc': avg_auc_dict[t_dataset],
+                                           f'{t_dataset}#aucs': aucs_dict[t_dataset],
+                                           f'{t_dataset}#report': reports_dict[t_dataset]}
             else:
-                df = pd.DataFrame.from_dict(
-                    {'round': [i for i in range(ROUND + 1)], 'loss': loss, 'acc': acc, 'report': reports,
-                     'time': times, 'lr': learning_rates, 'downsample_test': downsample_test})
+                res_dict = {}
+                for t_dataset in self.test_datasets:
+                    res_dict = res_dict | {f'{t_dataset}#loss': loss_dict[t_dataset],
+                                           f'{t_dataset}#acc': acc_dict[t_dataset],
+                                           f'{t_dataset}#report': reports_dict[t_dataset]}
+
+            df = pd.DataFrame.from_dict(
+                {'round': [i for i in range(ROUND + 1)], 'time': times, 'lr': learning_rates,
+                 'downsample_test': downsample_test} | res_dict)
 
             res_dir = results_dirname_generator()
-            if len(loss[:-1]) != 0 and test_loss < min(loss[:-1]):
+
+            is_best_model = True
+            for t_dataset in self.test_datasets:
+                is_best_model = is_best_model and (
+                        len(loss_dict[t_dataset][:-1]) != 0 and loss_dict[t_dataset][-1] < min(
+                    loss_dict[t_dataset][:-1]))
+
+            if is_best_model:
                 model_dir = os.path.join(res_dir, 'best_model')
                 if os.path.exists(model_dir):
                     shutil.rmtree(model_dir)
                 os.mkdir(model_dir)
-                LOGGER.info(f"Saving model as loss is the lowest: {test_loss}")
+                LOGGER.info(f"Saving model as all loses are the lowest")
                 torch.save(model.state_dict(),
-                           f'{model_dir}/{MODEL_NAME}_{ROUND}_loss_{round(test_loss, 3)}')
+                           f'{model_dir}/{MODEL_NAME}_{ROUND}')
 
             df['data_selection'] = DATA_SELECTION
             df.to_csv(os.path.join(res_dir, 'result.csv'))
@@ -268,10 +306,12 @@ class StrategyFactory:
 
             ROUND += 1
 
-            if get_type_of_dataset(self.d) == 'multi-class':
-                return test_loss, {"test_avg_auc": test_avg_auc}
+            if get_type_of_dataset(self.test_datasets[0]) == 'multi-class':
+                return np.mean([loss_dict[d][-1] for d in self.test_datasets]), {
+                    "test_avg_auc": np.mean([avg_auc_dict[d][-1] for d in self.test_datasets])}
             else:
-                return test_loss, {"test_acc": test_acc}
+                return np.mean([loss_dict[d][-1] for d in self.test_datasets]), {
+                    "test_acc": np.mean([acc_dict[d][-1] for d in self.test_datasets])}
 
         return evaluate
 
@@ -298,13 +338,15 @@ class StrategyFactory:
 @click.option('--bs', default=BATCH_SIZE, type=int, help='Batch size')
 @click.option('--lr', default=LEARNING_RATE, type=float, help='Learning rate')
 @click.option('--m', default='DenseNet121', type=str, help='Model used for training')
-@click.option('--d', default='nih', type=str, help='Dataset used for training (nih)')
+@click.option('--d', default='nih', type=str, help='Datasets used for training (nih), comma separated')
 @click.option('--hpc-log', is_flag=True, help='Whether to log HPC usage metrics')
 @click.option('--downsample-test', is_flag=True, help='Whether to downsample test set (to speed up FL process)')
 @click.option('--data-selection', default='iid', type=str, help='Kind of data selection strategy for clients')
-def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection):
+@click.option('--test_datasets', default='nih', type=str,
+              help='List of datasets used for evaluation of global model, comma separated')
+def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection, test_datasets):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASET_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION
+        DATASETS_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION, TEST_DATASETS
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -314,11 +356,12 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_se
     BATCH_SIZE = bs
     LEARNING_RATE = lr
     MODEL_NAME = m
-    DATASET_TYPE = d
+    DATASETS_TYPE = '#'.join(sorted(d.split(',')))
     HPC_LOG = hpc_log
     DOWNSAMPLE_TEST = downsample_test
     DATA_SELECTION = data_selection
     SERVER_ADDR = server_addr = socket.gethostname()
+    TEST_DATASETS = sorted(test_datasets.split(','))
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, d)
     strategy = factory.get_strategy()
