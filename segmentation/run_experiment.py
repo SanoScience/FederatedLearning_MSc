@@ -15,8 +15,8 @@ parameters = {'local_epochs': [1, 2, 3, 4, 5],
 
 def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds, noise):
     output = subprocess.check_output(
-        ['sbatch', 'v100_server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
-         str(batch_size), optimizer, str(ff), str(mf), str(noise)])
+        ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
+         str(batch_size), optimizer, str(ff), str(mf)])
     print('sbatch:', output)
     result = re.search('Submitted batch job (\d*)', output.decode('utf-8'))
     print(result.groups())

@@ -65,7 +65,7 @@ resource "google_compute_address" "flower-server" {
 }
 
 resource "google_compute_instance" "server" {
-  name = "server"
+  name = "segmentation-server"
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
   tags = [
@@ -86,7 +86,7 @@ resource "google_compute_instance" "server" {
   }
 
   guest_accelerator {
-    type = "nvidia-tesla-k80"
+    type = "nvidia-tesla-v100"
     count = 1
   }
 
@@ -98,29 +98,24 @@ resource "google_compute_instance" "server" {
     scopes = [
       "cloud-platform"]
   }
-  metadata = {
-    startup-script = <<-EOF
-    sudo /opt/deeplearning/install-driver.sh
+  metadata_startup_script = templatefile("./server_startup.sh", {
+    token = var.token
+    ff = var.fraction_fit
+    mf = var.min_fit_clients
+    lr = var.learning_rate
+    le = var.local_epochs
+    bs = var.batch_size
+    opt = var.optimizer
+    algo = var.fed_algo
+    rounds = var.rounds
+    node_count = var.node_count
+  })
 
-    cd /home/prz_jab98
-    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
-    unzip chest_dataset.zip
-
-    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
-    sudo chmod -R 777 FederatedLearning_MSc
-    cd FederatedLearning_MSc/segmentation
-
-    CURR_DIR=$PWD
-    PARENT_DIR="$(dirname "$CURR_DIR")"
-    export PYTHONPATH=$PARENT_DIR
-    python3 server_segmentation.py --c ${var.node_count} --r ${var.rounds} --a ${var.fed_algo} --le ${var.local_epochs} --lr ${var.learning_rate} --bs ${var.batch_size} --o ${var.optimizer} --ff ${var.fraction_fit} --mf ${var.min_fit_clients} > logs.txt
-    EOF
-  }
 }
 
 
 resource google_compute_instance "client" {
-  name = "client-${count.index}"
+  name = "segmentation-client-${count.index}"
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
   count = var.node_count
@@ -153,24 +148,12 @@ resource google_compute_instance "client" {
       "cloud-platform"]
   }
 
-  metadata = {
-    startup-script = <<-EOF
-    sudo /opt/deeplearning/install-driver.sh
-
-    cd /home/prz_jab98
-    gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
-    unzip chest_dataset.zip
-
-    git clone https://${var.token}@github.com/SanoScience/FederatedLearning_MSc.git
-    sudo chmod -R 777 FederatedLearning_MSc
-    cd FederatedLearning_MSc/segmentation
-
-    CURR_DIR=$PWD
-    PARENT_DIR="$(dirname "$CURR_DIR")"
-    export PYTHONPATH=$PARENT_DIR
-    python3 client_segmentation.py ${google_compute_address.flower-server.address} ${count.index} ${var.node_count} > logs.txt
-    EOF
-  }
+  metadata_startup_script = templatefile("./client_startup.sh", {
+    token = var.token
+    address = google_compute_address.flower-server.address
+    index = count.index
+    node_count = var.node_count
+  })
 }
 
 output "instance_0_endpoint" {
