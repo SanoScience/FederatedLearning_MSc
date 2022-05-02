@@ -167,15 +167,12 @@ def main():
 
     # Start client
     logger.info(f"Connecting to: {server_addr}:8081")
-    while True:
-        try:
-            client = SegmentationClient(net)
-            fl.client.start_numpy_client(f"{server_addr}:8081", client=client)
-        except Exception as e:
-            logger.info("Exception occurred")
-            logger.info(e)
-            time.sleep(120)
-
+    try:
+        client = SegmentationClient(net)
+        fl.client.start_numpy_client(f"{server_addr}:8081", client=client)
+    except Exception as e:
+        logger.info("Exception occurred")
+        logger.info(e)
 
 if __name__ == "__main__":
     main()

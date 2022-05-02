@@ -24,12 +24,14 @@ cd /home/prz_jab98
 gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
 unzip chest_dataset.zip
 
-git clone -b cloud https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
+git clone -b dp_and_cloud https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
 sudo chmod -R 777 FederatedLearning_MSc
-cd FederatedLearning_MSc/segmentation
+cd FederatedLearning_MSc
+pip3 install -r requirements.txt --user
+cd segmentation
 
 echo 'Running FL'
 export PYTHONPATH=$(dirname $PWD)
-echo "export PYTHONPATH=$(dirname $PWD) && python3 server_segmentation.py --c ${node_count} --r ${rounds} --a ${algo} --le ${le} --lr ${lr} --bs ${bs} --o ${opt} --ff ${ff} --mf ${mf}" > run.sh
+echo "export PYTHONPATH=$(dirname $PWD) && python3 server_segmentation.py --c ${node_count} --r ${rounds} --a ${algo} --le ${le} --lr ${lr} --bs ${bs} --o ${opt} --ff ${ff} --mf ${mf} --nl 1.0" > run.sh
+sudo chmod 777 run.sh
 #python3 server_segmentation.py --c ${node_count} --r ${rounds} --a ${algo} --le ${le} --lr ${lr} --bs ${bs} --o ${opt} --ff ${ff} --mf ${mf}
-touch post.txt

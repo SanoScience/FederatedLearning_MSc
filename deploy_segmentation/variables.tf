@@ -1,17 +1,17 @@
 variable "node_count" {
-  default = 4
+  default = 8
  }
 
 variable "rounds" {
-  default = 12
+  default = 15
 }
 
 variable "fed_algo" {
-  default = "FedAdam"
+  default = "FedAvg"
 }
 
 variable "optimizer" {
-  default = "Adam"
+  default = "SGD"
 }
 
 variable "batch_size" {
@@ -23,7 +23,7 @@ variable "local_epochs" {
 }
 
 variable "learning_rate" {
-  default = 0.0001
+  default = 0.001
 }
 
 variable "fraction_fit" {
@@ -31,7 +31,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 4
+  default = 8
 }
 
 variable "token" {
