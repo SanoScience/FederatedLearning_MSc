@@ -1,5 +1,5 @@
 variable "node_count" {
-  default = 4
+  default = 8
  }
 
 variable "rounds" {
@@ -7,7 +7,7 @@ variable "rounds" {
 }
 
 variable "fed_algo" {
-  default = "FedAdam"
+  default = "FedAvg"
 }
 
 variable "optimizer" {
@@ -31,7 +31,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 4
+  default = 8
 }
 
 variable "token" {

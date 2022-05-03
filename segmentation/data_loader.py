@@ -1,5 +1,6 @@
 """Data loader for lung segmentation."""
 from segmentation.data_selector import IIDSelector
+import logging
 
 import os
 import glob
@@ -10,6 +11,12 @@ from torchvision import transforms
 import torchvision.transforms.functional as F
 from torch.utils.data.dataset import Dataset
 import pandas as pd
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+hdlr = logging.StreamHandler()
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 
 def get_key(fp):
@@ -60,7 +67,8 @@ class LungSegDataset(Dataset):
         image = resize_transform(image)
         mask = resize_transform(mask)
 
-        if self.mode == "train":
+        if self.mode == "NA":
+            logger.info("Augmentations applied")
             if random.random() > 0.5:
                 color_jitter_transform = transforms.ColorJitter(
                     brightness=[0.8, 1.2],

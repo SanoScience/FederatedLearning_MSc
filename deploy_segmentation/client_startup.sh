@@ -21,13 +21,15 @@ cd /home/prz_jab98
 gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
 unzip chest_dataset.zip
 
-git clone -b cloud https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
+git clone -b cloud_no_aug https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
 sudo chmod -R 777 FederatedLearning_MSc
 cd FederatedLearning_MSc/segmentation
 
 
 echo 'Running FL'
 echo "export PYTHONPATH=$(dirname $PWD) && python3 client_segmentation.py ${address} ${index} ${node_count}" > run.sh
+sudo chmod 777 run.sh
+
 export PYTHONPATH=$(dirname $PWD)
 #python3 client_segmentation.py ${address} ${index} ${node_count}
 touch post.txt
