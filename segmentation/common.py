@@ -7,9 +7,12 @@ from segmentation.loss_functions import DiceLoss, DiceBCELoss
 
 
 def get_data_paths():
-    return "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/masks", \
-           "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images", \
-           "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/labels.csv"
+        # return "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/masks", \
+        #    "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/images", \
+        #    "/net/archive/groups/plggsano/fl_msc/segmentation/ChestX_COVID-main/dataset/labels.csv"
+        return "/home/prz_jab98/dataset/masks", \
+               "/home/prz_jab98/dataset/images", \
+               "/home/prz_jab98/dataset/labels.csv"
 
 
 def get_state_dict(net, parameters):
@@ -51,7 +54,7 @@ def validate(net, val_loader, device):
 
 
 def get_model():
-    return UnetPlusPlus('efficientnet-b4',
+    return UnetPlusPlus('efficientnet-b0',
                         in_channels=1,
                         classes=1,
                         activation='sigmoid')

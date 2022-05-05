@@ -4,6 +4,18 @@ provider "google" {
   zone = "us-central1-a"
 }
 
+resource google_service_account "default" {
+  account_id = "flower-federated-learning"
+  display_name = "FL Msc Account"
+}
+
+resource "google_storage_bucket_iam_binding" "binding" {
+  bucket = var.dataset_bucket
+  role = "roles/storage.admin"
+  members = [
+    "serviceAccount:${google_service_account.default.email}"
+  ]
+}
 
 module "flower-vpc" {
   source = "terraform-google-modules/network/google"
@@ -32,18 +44,19 @@ module "flower-vpc" {
 resource google_compute_firewall "firewall-server" {
   name = "firewall-server"
   network = "default"
-  source_tags = [
-    "web"]
-
+  source_ranges = [
+    "0.0.0.0/0"]
+  // todo: use serivce account
+  // source_service_accounts = [google_service_account.default.email]
   allow {
     protocol = "tcp"
     ports = [
       "80",
-      "8080",
       "443",
       "5000-5999",
       "6000-6999",
-      "7000-7999"]
+      "7000-7999",
+      "8000-8999"]
   }
 }
 
@@ -52,9 +65,11 @@ resource "google_compute_address" "flower-server" {
 }
 
 resource "google_compute_instance" "server" {
-  name = "server"
+  name = "segmentation-server"
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
+  tags = [
+    "flwr-server"]
 
   boot_disk {
     initialize_params {
@@ -70,29 +85,42 @@ resource "google_compute_instance" "server" {
     }
   }
 
-  //  guest_accelerator = [
-  //    {
-  //      type = "nvidia-tesla-k80"
-  //      count = "1"
-  //    }]
+  guest_accelerator {
+    type = "nvidia-tesla-v100"
+    count = 1
+  }
 
   scheduling {
     on_host_maintenance = "TERMINATE"
   }
-  metadata = {
-    startup-script = <<-EOF
-    echo hello > /test.txt
-    EOF
+  service_account {
+    email = google_service_account.default.email
+    scopes = [
+      "cloud-platform"]
   }
+  metadata_startup_script = templatefile("./server_startup.sh", {
+    token = var.token
+    ff = var.fraction_fit
+    mf = var.min_fit_clients
+    lr = var.learning_rate
+    le = var.local_epochs
+    bs = var.batch_size
+    opt = var.optimizer
+    algo = var.fed_algo
+    rounds = var.rounds
+    node_count = var.node_count
+  })
+
 }
 
 
 resource google_compute_instance "client" {
-  name = "client-${count.index}"
+  name = "segmentation-client-${count.index}"
   machine_type = "n1-standard-8"
   zone = "us-central1-a"
   count = var.node_count
-
+  tags = [
+    "flwr-client"]
   boot_disk {
     initialize_params {
       image = "projects/sano-332607/global/images/fl-msc-image-v1"
@@ -105,20 +133,27 @@ resource google_compute_instance "client" {
     }
   }
 
-  //  guest_accelerator = [{
-  //    type = "nvidia-tesla-k80"
-  //    count = "1"
-  //  }]
+  guest_accelerator {
+    type = "nvidia-tesla-k80"
+    count = 1
+  }
 
   scheduling {
     on_host_maintenance = "TERMINATE"
   }
 
-  metadata = {
-    startup-script = <<-EOF
-    echo ${google_compute_address.flower-server.address} > /test.txt
-    EOF
+  service_account {
+    email = google_service_account.default.email
+    scopes = [
+      "cloud-platform"]
   }
+
+  metadata_startup_script = templatefile("./client_startup.sh", {
+    token = var.token
+    address = google_compute_address.flower-server.address
+    index = count.index
+    node_count = var.node_count
+  })
 }
 
 output "instance_0_endpoint" {

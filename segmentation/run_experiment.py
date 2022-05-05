@@ -1,6 +1,7 @@
 import re
 import subprocess
 import time
+import os
 
 parameters = {'local_epochs': [1, 2, 3, 4, 5],
               'batch_size': [1, 2],
@@ -12,9 +13,9 @@ parameters = {'local_epochs': [1, 2, 3, 4, 5],
               'backbone': ['EfficientNetB4', 'ResNet18']}
 
 
-def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds=15):
+def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optimizer, mf, rounds):
     output = subprocess.check_output(
-        ['sbatch', 'v100_server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
+        ['sbatch', 'server.sh', str(clients_count), str(rounds), 'FedAvg', str(local_epochs), str(lr),
          str(batch_size), optimizer, str(ff), str(mf)])
     print('sbatch:', output)
     result = re.search('Submitted batch job (\d*)', output.decode('utf-8'))
@@ -43,14 +44,26 @@ def run_single_experiment(local_epochs, batch_size, clients_count, ff, lr, optim
         node = split[7]
         print(f"{job_id}:{status}")
         time.sleep(60)
-    print("Starting all clients in 100s!")
-    time.sleep(100)
-    output = subprocess.check_output(['./v100_run_clients.sh', node.decode('utf-8'), str(clients_count)])
+    print("Starting all clients in 12m!")
+    time.sleep(12 * 60)
+    output = subprocess.check_output(['./run_clients.sh', node.decode('utf-8'), str(clients_count)])
     print(output)
-    print("Starting next job in 1 hour.")
-    time.sleep(3600)
+    print("Starting next job in 3h.")
+    time.sleep(60 * 60 * 3)
 
 
-for le in [2, 3]:
-    for mf in [1, 2, 3]:
-        run_single_experiment(le, 2, clients_count=3, ff=0.3, lr=0.001, optimizer='Adagrad', mf=mf)
+clients_count = 8
+for optimizer in ['Adam', 'Adagrad']:
+    for lr in [0.001]:
+        for bs in [16, 8, 4]:
+            for le in [3, 2, 1]:
+                for ff in [0.5, 0.75, 1.0]:
+                    rounds = 12
+                    mf = int(clients_count * ff)
+                    res_dir = f'unet++_efficientnet-b0_r_{rounds}-c_{clients_count}_bs_{bs}_le_{le}_fs_FedAvg' \
+                    f'_mf_{mf}_ff_{ff}_do_{False}_o_{optimizer}_lr_{lr}_image_{256}_IID'
+                    if os.path.exists(res_dir) and os.path.exists(res_dir +"/" + "result.csv"):
+                        print("skipping: ", res_dir)
+                        continue
+                    run_single_experiment(local_epochs=le, batch_size=bs, clients_count=clients_count, ff=ff, lr=lr,
+                                          optimizer=optimizer, mf=mf, rounds=rounds)

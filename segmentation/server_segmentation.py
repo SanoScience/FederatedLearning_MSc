@@ -1,6 +1,6 @@
 import logging
 import socket
-
+import time
 import click
 import flwr as fl
 import pandas as pd
@@ -13,11 +13,12 @@ from segmentation_models_pytorch import UnetPlusPlus
 
 loss = []
 jacc = []
+time_measurements = []
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ROUND = 0
 
 BATCH_SIZE = 2
-IMAGE_SIZE = 1024
+IMAGE_SIZE = 256
 MAX_ROUND = 5
 CLIENTS = 3
 FED_AGGREGATION_STRATEGY = 'FedAvg'
@@ -56,7 +57,7 @@ def fit_config(rnd: int):
 
 
 def results_dirname_generator():
-    return f'unet++_efficientnet-b4_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
+    return f'unet++_efficientnet-b0_r_{MAX_ROUND}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}_fs_{FED_AGGREGATION_STRATEGY}' \
            f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_do_{DICE_ONLY}_o_{OPTIMIZER_NAME}_lr_{LEARNING_RATE}_image_{IMAGE_SIZE}_IID'
 
 
@@ -84,9 +85,13 @@ def get_eval_fn(net):
 
         loss.append(val_loss)
         jacc.append(val_jacc)
+        time_measurements.append(time.time())
         if MAX_ROUND == ROUND:
-            df = pd.DataFrame.from_dict({'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc})
-            df.to_csv(os.path.join(res_dir, 'result.csv'))
+            df = pd.DataFrame.from_dict(
+                {'round': [i for i in range(MAX_ROUND + 1)], 'loss': loss, 'jaccard': jacc, 'time': time_measurements})
+            res_path = os.path.join(res_dir, 'result.csv')
+            df.to_csv(res_path)
+            logger.info(f"CSV with results saved: {res_path}")
         ROUND += 1
         return val_loss, {"val_jacc": val_jacc, "val_dice_loss": val_loss}
 
@@ -123,15 +128,18 @@ def run_server(le, a, c, r, mf, ff, bs, lr, o):
     net = get_model().to(DEVICE)
 
     # Define strategy
-    strategy = strategies[FED_AGGREGATION_STRATEGY](
+    strategy = fl.server.strategy.FedAdagrad(
         fraction_fit=FRACTION_FIT,
-        fraction_eval=0.75,
         min_fit_clients=MIN_FIT_CLIENTS,
+        fraction_eval=0.75,
         min_eval_clients=2,
         eval_fn=get_eval_fn(net),
         min_available_clients=CLIENTS,
         on_fit_config_fn=fit_config,
         initial_parameters=fl.common.weights_to_parameters([val.cpu().numpy() for _, val in net.state_dict().items()]),
+        eta=1e-1,
+        eta_l=1e-1,
+        tau=1e-9
     )
 
     # Start server

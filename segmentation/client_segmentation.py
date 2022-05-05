@@ -130,8 +130,11 @@ def main():
 
     # Start client
     logger.info(f"Connecting to: {server_addr}:8081")
-    fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
-
+    try:
+        fl.client.start_numpy_client(f"{server_addr}:8081", client=SegmentationClient())
+    except Exception as e:
+        logger.error("Exception ocurred")
+        logger.error(e)
 
 if __name__ == "__main__":
     main()
