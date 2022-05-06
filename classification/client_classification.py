@@ -153,8 +153,7 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
 
 
 def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
-    images_dir, train_subset, _, _ = get_data_paths(d_name)
-    LOGGER.info(f"images_dir: {images_dir}")
+    _, train_subset, _, _ = get_data_paths(d_name)
     df = pd.read_csv(train_subset)
 
     dataset_len = len(df)

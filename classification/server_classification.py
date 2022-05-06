@@ -54,6 +54,8 @@ GPU_METRICS = []
 DOWNSAMPLE_TEST = True
 DATA_SELECTION = 'iid'
 TEST_DATASETS = ['nih']
+STUDY_PREFIX = 'nih'
+RESULTS_BUCKET = 'fl-msc-classification'
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -85,7 +87,7 @@ def fit_config(rnd: int):
 
 def results_dirname_generator():
     return f'd_{DATASETS_TYPE}_m_{MODEL_NAME}_r_{MAX_ROUNDS}-c_{CLIENTS}_bs_{BATCH_SIZE}_le_{LOCAL_EPOCHS}' \
-           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_data_selection_{DATA_SELECTION}'
+           f'_mf_{MIN_FIT_CLIENTS}_ff_{FRACTION_FIT}_image_{IMAGE_SIZE}_data_selection_{DATA_SELECTION}_test_datasets_{"#".join(TEST_DATASETS)}'
 
 
 def get_slurm_stats(job_id, job_type, node_id):
@@ -196,9 +198,9 @@ class StrategyFactory:
 
         for t_dataset in self.test_datasets:
             _, test_subset = get_beton_data_paths(t_dataset)
-            LOGGER.info(f"images_dir: {test_subset}")
+            LOGGER.info(f"test_subset_file: {test_subset}")
             if DOWNSAMPLE_TEST:
-                images_dir, _, test_subset_list, _ = get_data_paths(t_dataset)
+                _, _, test_subset_list, _ = get_data_paths(t_dataset)
                 df = pd.read_csv(test_subset_list)
                 dataset_len = len(df)
                 selector = IIDSelector()
@@ -217,7 +219,7 @@ class StrategyFactory:
         classes_names = get_class_names(self.test_datasets[0])
 
         def evaluate(weights):
-            global ROUND, LEARNING_RATE, PATIENCE, CURRENT_PATIENCE
+            global ROUND, LEARNING_RATE, PATIENCE, CURRENT_PATIENCE, RESULTS_BUCKET
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
 
@@ -306,6 +308,12 @@ class StrategyFactory:
 
             ROUND += 1
 
+            if RESULTS_BUCKET:
+                copy_status = subprocess.run(
+                    ['gsutil', '-m', 'cp', '-r', f'{res_dir}/', f'gs://{RESULTS_BUCKET}/{STUDY_PREFIX}/{res_dir}/'],
+                    stdout=subprocess.PIPE).stdout.decode('utf-8')
+                LOGGER.info(copy_status)
+
             if get_type_of_dataset(self.test_datasets[0]) == 'multi-class':
                 return np.mean([loss_dict[d][-1] for d in self.test_datasets]), {
                     "test_avg_auc": np.mean([avg_auc_dict[d][-1] for d in self.test_datasets])}
@@ -344,9 +352,12 @@ class StrategyFactory:
 @click.option('--data-selection', default='iid', type=str, help='Kind of data selection strategy for clients')
 @click.option('--test_datasets', default='nih', type=str,
               help='List of datasets used for evaluation of global model, comma separated')
-def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection, test_datasets):
+@click.option('--results_bucket', default='fl-msc-classification', type=str, help='GCP bucket for storing results')
+@click.option('--study_prefix', default='nih', type=str, help='General name of the experiment')
+def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection, test_datasets, results_bucket,
+               study_prefix):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASETS_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION, TEST_DATASETS
+        DATASETS_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION, TEST_DATASETS, RESULTS_BUCKET, STUDY_PREFIX
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -362,6 +373,8 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_se
     DATA_SELECTION = data_selection
     SERVER_ADDR = server_addr = socket.gethostname()
     TEST_DATASETS = sorted(test_datasets.split(','))
+    RESULTS_BUCKET = results_bucket
+    STUDY_PREFIX = study_prefix
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, TEST_DATASETS)
     strategy = factory.get_strategy()
