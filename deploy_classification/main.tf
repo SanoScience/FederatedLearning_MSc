@@ -17,6 +17,12 @@ resource "google_storage_bucket_iam_binding" "binding" {
   ]
 }
 
+resource "google_project_iam_member" "monitoring-writer" {
+  project = "sano-332607"
+  role   = "roles/monitoring.metricWriter"
+  member = "serviceAccount:${google_service_account.default.email}"
+}
+
 //module "flower-classification-vpc" {
 //  source = "terraform-google-modules/network/google"
 //  project_id = "sano-332607"
