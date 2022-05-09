@@ -7,7 +7,7 @@ variable "rounds" {
 }
 
 variable "local_epochs" {
-  default = 3
+  default = 1
 }
 
 variable "batch_size" {

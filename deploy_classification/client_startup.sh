@@ -10,6 +10,6 @@ cd FederatedLearning_MSc/classification
 source /home/filip_slazyk/anaconda3/etc/profile.d/conda.sh
 conda activate ffcv
 
-sleep 30
+sleep 90
 echo 'Running FL'
 python3 client_classification.py --sa ${address} --c_id ${index} --c ${node_count} --d ${client_dataset}

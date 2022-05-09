@@ -310,7 +310,7 @@ class StrategyFactory:
 
             if RESULTS_BUCKET:
                 copy_status = subprocess.run(
-                    ['gsutil', '-m', 'cp', '-r', f'{res_dir}/', f'gs://{RESULTS_BUCKET}/{STUDY_PREFIX}/{res_dir}/'],
+                    ['gsutil', '-m', 'cp', '-r', f'{res_dir}/', f'gs://{RESULTS_BUCKET}/{STUDY_PREFIX}/'],
                     stdout=subprocess.PIPE).stdout.decode('utf-8')
                 LOGGER.info(copy_status)
 

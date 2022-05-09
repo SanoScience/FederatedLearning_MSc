@@ -23,6 +23,12 @@ resource "google_project_iam_member" "monitoring-writer" {
   member = "serviceAccount:${google_service_account.default.email}"
 }
 
+resource "google_project_iam_member" "logs-writer" {
+  project = "sano-332607"
+  role   = "roles/logging.logWriter"
+  member = "serviceAccount:${google_service_account.default.email}"
+}
+
 //module "flower-classification-vpc" {
 //  source = "terraform-google-modules/network/google"
 //  project_id = "sano-332607"
