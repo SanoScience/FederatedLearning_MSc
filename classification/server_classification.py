@@ -207,11 +207,11 @@ class StrategyFactory:
                 # Downsample dataset by factor of 10
                 ids = selector.get_ids(dataset_len, 0, 10)
 
-                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1,
+                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
                                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines, indices=ids,
                                                       drop_last=False)
             else:
-                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=1,
+                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
                                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines,
                                                       drop_last=False)
 
