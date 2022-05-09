@@ -5,7 +5,7 @@ provider "google" {
 }
 
 resource google_service_account "default" {
-  account_id = "flower-classification-federated-learning"
+  account_id = "flower-federated-learning"
   display_name = "FL Msc Account for classification"
 }
 

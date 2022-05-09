@@ -14,7 +14,7 @@ from io import StringIO
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-REPO_DATASETS_PATH_BASE = os.path.expandvars("~/fl-datasets")
+REPO_DATASETS_PATH_BASE = os.path.expandvars("/home/filip_slazyk/fl-datasets")
 RSNA_DATASET_PATH_BASE = os.path.expandvars("$SCRATCH/fl_msc/classification/RSNA/")
 NIH_DATASET_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "NIH/")
 CC_CXRI_P_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "CC-CXRI-P/")
