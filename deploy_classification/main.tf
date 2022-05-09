@@ -132,9 +132,9 @@ resource "google_compute_instance" "server" {
 
 resource google_compute_instance "client" {
   name = "classification-client-${count.index}"
-  machine_type = "n1-standard-8"
-  zone = "us-central1-a"
+  machine_type = "a2-highgpu-1g"
   count = var.node_count
+  zone = var.a_100_client_zones[count.index]
   tags = [
     "flwr-classification-client"]
   boot_disk {
@@ -149,10 +149,10 @@ resource google_compute_instance "client" {
     }
   }
 
-  guest_accelerator {
-    type = "nvidia-tesla-k80"
-    count = 1
-  }
+//  guest_accelerator {
+//    type = "nvidia-tesla-a100"
+//    count = 1
+//  }
 
   scheduling {
     on_host_maintenance = "TERMINATE"
@@ -169,7 +169,7 @@ resource google_compute_instance "client" {
     address = google_compute_address.flower-classification-server.address
     index = count.index
     node_count = var.node_count
-    client_dataset = var.client_dataset
+    client_dataset = var.client_datasets[count.index]
   })
 }
 
