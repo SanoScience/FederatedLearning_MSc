@@ -1,5 +1,5 @@
-variable "node_count" {
-  default = 3
+variable "total_node_count" {
+  default = 6
 }
 
 variable "rounds" {
@@ -15,11 +15,11 @@ variable "batch_size" {
 }
 
 variable "model" {
-  default = "DenseNet121"
+  default = "ResNet50"
 }
 
 variable "training_datasets" {
-  default = "nih"
+  default = "nih,chestdx"
 }
 
 variable "test_datasets" {
@@ -35,7 +35,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 3
+  default = 6
 }
 
 variable "data_selection" {
@@ -68,12 +68,28 @@ variable "client_datasets" {
   default = [
     "nih",
     "nih",
-    "nih"]
+    "nih",
+    "chestdx",
+    "chestdx",
+    "chestdx"]
 }
 
-variable "client_ids" {
+variable "client_indices" {
   default = [
     0,
     1,
+    2,
+    0,
+    1,
     2]
+}
+
+variable "client_counts" {
+  default = [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3]
 }

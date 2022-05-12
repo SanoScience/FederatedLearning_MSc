@@ -119,7 +119,7 @@ resource "google_compute_instance" "server" {
     local_epochs = var.local_epochs
     batch_size = var.batch_size
     rounds = var.rounds
-    node_count = var.node_count
+    node_count = var.total_node_count
     model = var.model
     data_selection = var.data_selection
     training_datasets = var.training_datasets
@@ -131,9 +131,9 @@ resource "google_compute_instance" "server" {
 }
 
 resource google_compute_instance "client" {
-  name = "classification-client-${count.index}"
+  name = "classification-client-${count.index}-${var.client_datasets[count.index]}"
   machine_type = "a2-highgpu-1g"
-  count = var.node_count
+  count = var.total_node_count
   zone = var.a_100_client_zones[count.index]
   tags = [
     "flwr-classification-client"]
@@ -167,8 +167,8 @@ resource google_compute_instance "client" {
   metadata_startup_script = templatefile("./client_startup.sh", {
     token = var.token
     address = google_compute_address.flower-classification-server.address
-    index = count.index
-    node_count = var.node_count
+    index = var.client_indices[count.index]
+    node_count = var.client_counts[count.index]
     client_dataset = var.client_datasets[count.index]
   })
 }
