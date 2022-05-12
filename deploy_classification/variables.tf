@@ -1,5 +1,5 @@
 variable "total_node_count" {
-  default = 6
+  default = 3
 }
 
 variable "rounds" {
@@ -19,11 +19,11 @@ variable "model" {
 }
 
 variable "training_datasets" {
-  default = "nih,chestdx"
+  default = "mimic"
 }
 
 variable "test_datasets" {
-  default = "nih,chestdx,chestdx-pe"
+  default = "mimic,chexpert"
 }
 
 variable "learning_rate" {
@@ -35,7 +35,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 6
+  default = 3
 }
 
 variable "data_selection" {
@@ -51,7 +51,7 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "nih_chestdx"
+  default = "mimic-chexpert"
 }
 
 variable "a_100_client_zones" {
@@ -66,19 +66,13 @@ variable "a_100_client_zones" {
 
 variable "client_datasets" {
   default = [
-    "nih",
-    "nih",
-    "nih",
-    "chestdx",
-    "chestdx",
-    "chestdx"]
+    "mimic",
+    "mimic",
+    "mimic"]
 }
 
 variable "client_indices" {
   default = [
-    0,
-    1,
-    2,
     0,
     1,
     2]
@@ -86,9 +80,6 @@ variable "client_indices" {
 
 variable "client_counts" {
   default = [
-    3,
-    3,
-    3,
     3,
     3,
     3]
