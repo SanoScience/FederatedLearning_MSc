@@ -112,6 +112,9 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
             optimizer.zero_grad()
 
             logits = model(images)
+
+            # U-zeros approach
+            batch_labels[batch_labels != 1.0] = 0.0
             loss = criterion(logits, batch_labels)
 
             loss.backward()
@@ -236,7 +239,8 @@ class ClassificationClient(fl.client.NumPyClient):
         LOGGER.info(f"Learning rate: {lr}")
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
-        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, self.dataset_name, batch_size,
+        self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, self.dataset_name,
+                                                          batch_size,
                                                           data_selection=data_selection)
 
         if get_type_of_dataset(self.dataset_name) == 'multi-class':

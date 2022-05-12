@@ -20,6 +20,8 @@ NIH_DATASET_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "NIH/")
 CC_CXRI_P_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "CC-CXRI-P/")
 CHESTDX_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "ChestDx/")
 CHESTDX_PE_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "ChestDx-PE/")
+MIMIC_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "MIMIC/")
+CHEXPERT_PATH_BASE = os.path.join(REPO_DATASETS_PATH_BASE, "CheXpert/")
 
 CHESTDX_DATASET_PATH_BASE = os.path.expandvars(
     "$PLG_GROUPS_STORAGE/plggsano/fl_msc_classification/classification/China_X_ray")
@@ -178,6 +180,14 @@ def get_beton_data_paths(dataset):
         train_subset = os.path.join(CHESTDX_PE_PATH_BASE, 'chestdx-pe-train-256-jpg90.beton')
         test_subset = os.path.join(CHESTDX_PE_PATH_BASE, 'chestdx-pe-test-256-jpg90.beton')
         return train_subset, test_subset
+    if dataset == 'mimic':
+        train_subset = os.path.join(MIMIC_DATASET_PATH_BASE, 'mimic-train-256-jpg90.beton')
+        test_subset = os.path.join(MIMIC_DATASET_PATH_BASE, 'mimic-test-256-jpg90.beton')
+        return train_subset, test_subset
+    if dataset == 'chexpert':
+        train_subset = os.path.join(CHEXPERT_PATH_BASE, 'chexpert-train-256-jpg90.beton')
+        test_subset = os.path.join(CHEXPERT_PATH_BASE, 'chexpert-test-256-jpg90.beton')
+        return train_subset, test_subset
 
 
 def get_class_names(dataset):
@@ -294,6 +304,9 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
     with torch.no_grad():
         for batch_idx, (image, batch_label) in enumerate(test_loader):
             logits = model(image)
+
+            # U-zeros approach
+            batch_label[batch_label != 1.0] = 0.0
             loss = criterion(logits, batch_label)
             test_running_loss += loss.item()
 
