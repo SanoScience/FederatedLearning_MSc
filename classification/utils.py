@@ -181,8 +181,8 @@ def get_beton_data_paths(dataset):
         test_subset = os.path.join(CHESTDX_PE_PATH_BASE, 'chestdx-pe-test-256-jpg90.beton')
         return train_subset, test_subset
     if dataset == 'mimic':
-        train_subset = os.path.join(MIMIC_DATASET_PATH_BASE, 'mimic-train-256-jpg90.beton')
-        test_subset = os.path.join(MIMIC_DATASET_PATH_BASE, 'mimic-test-256-jpg90.beton')
+        train_subset = os.path.join(MIMIC_PATH_BASE, 'mimic-train-256-jpg90.beton')
+        test_subset = os.path.join(MIMIC_PATH_BASE, 'mimic-test-256-jpg90.beton')
         return train_subset, test_subset
     if dataset == 'chexpert':
         train_subset = os.path.join(CHEXPERT_PATH_BASE, 'chexpert-train-256-jpg90.beton')
