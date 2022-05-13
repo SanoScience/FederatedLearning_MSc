@@ -12,4 +12,4 @@ conda activate ffcv
 
 sleep 90
 echo 'Running FL'
-python3 client_classification.py --sa ${address} --c_id ${index} --c ${node_count} --d ${client_dataset}
+python3 client_classification.py --sa ${address} --c_id ${index} --c ${node_count} --d ${client_dataset} --reduced_classes

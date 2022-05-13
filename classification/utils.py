@@ -37,6 +37,9 @@ CHEXPERT_MIMIC_CLASSES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema
                           "Fracture", "Lung Lesion", "Lung Opacity", "Pleural Effusion",
                           "Pleural Other", "Pneumonia", "Pneumothorax", "Support Devices"]
 
+################################
+COMMON_CLASSES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Lung Lesion", "Pneumonia", "Pneumothorax"]
+
 CC_CXRI_P_CLASSES = ["Normal", "Viral", "COVID", "Other"]
 
 
@@ -146,7 +149,7 @@ def get_type_of_dataset(dataset):
         return 'multi-class'
 
 
-def get_dataset_classes_count(dataset):
+def get_dataset_classes_count(dataset, common_classes=False):
     classes_counts = {
         'rsna': 3,
         'cc-cxri-p': 4,
@@ -156,7 +159,7 @@ def get_dataset_classes_count(dataset):
         'chexpert': 13,
         'mimic': 13
     }
-    return classes_counts[dataset]
+    return classes_counts[dataset] if not common_classes else len(COMMON_CLASSES)
 
 
 def get_beton_data_paths(dataset):
@@ -190,7 +193,7 @@ def get_beton_data_paths(dataset):
         return train_subset, test_subset
 
 
-def get_class_names(dataset):
+def get_class_names(dataset, common_classes=False):
     dataset_to_names = {
         'rsna': ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"],
         'cc-cxri-p': ["Normal", "Viral", "COVID", "Other"],
@@ -200,7 +203,7 @@ def get_class_names(dataset):
         'chexpert': CHEXPERT_MIMIC_CLASSES,
         'mimic': CHEXPERT_MIMIC_CLASSES
     }
-    return dataset_to_names[dataset]
+    return dataset_to_names[dataset] if not common_classes else COMMON_CLASSES
 
 
 def make_round_gpu_metrics_dir(server_addr, dataset_name, node_id, round_no):
@@ -290,7 +293,7 @@ def test_single_label(model, logger, test_loader, criterion, classes_names, serv
 
 
 def test_multi_label(model, logger, test_loader, criterion, classes_names, server_address, d_name, client_id,
-                     round_no, hpc_log):
+                     round_no, hpc_log, convert_label_fun):
     gpu_stats_dfs = []
     if hpc_log:
         make_round_gpu_metrics_dir(server_address, d_name, client_id, round_no)
@@ -307,6 +310,8 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
 
             # U-zeros approach
             batch_label[batch_label != 1.0] = 0.0
+            batch_label = convert_label_fun(batch_label)
+
             loss = criterion(logits, batch_label)
             test_running_loss += loss.item()
 
@@ -352,3 +357,21 @@ def test_multi_label(model, logger, test_loader, criterion, classes_names, serve
         save_round_gpu_csv(gpu_stats_dfs, server_address, d_name, str(client_id), round_no)
 
     return avg_auc, test_loss, report_json, aucs_json
+
+
+def convert_label_mimic_chexpert_to_common(t):
+    t_reduced = torch.column_stack((t[:, 0], t[:, 1], t[:, 2], t[:, 3], t[:, 6], t[:, 10], t[:, 11]))
+    return t_reduced
+
+
+def convert_label_nih_chestdx_to_common(t):
+    t_reduced = torch.column_stack(
+        (t[:, 4], t[:, 13], t[:, 0], t[:, 6], t[:, 2].int() | t[:, 12].int(), t[:, 7], t[:, 5]))
+    return t_reduced
+
+
+def get_convert_label_fun(d_name):
+    if d_name in ['chexpert', 'mimic']:
+        return convert_label_mimic_chexpert_to_common
+    elif d_name in ['chestdx', 'chestdx-pe', 'nih']:
+        return convert_label_nih_chestdx_to_common

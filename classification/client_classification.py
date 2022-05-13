@@ -20,7 +20,7 @@ from data_selector import IIDSelector, IncreasingSelector, NonIIDSelector
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
     get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv, \
-    CC_CXRI_P_CLASSES, get_dataset_classes_count
+    CC_CXRI_P_CLASSES, get_dataset_classes_count, get_convert_label_fun
 
 import torch.nn.functional as F
 import click
@@ -34,6 +34,7 @@ SERVER_ADDRESS = ''
 ROUND = 0
 HPC_LOG = True
 HPC_LOG_FREQUENCY = 100
+REDUCED_CLASSES = False
 
 hdlr = logging.StreamHandler()
 LOGGER = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
             save_round_gpu_csv(gpu_stats_dfs, SERVER_ADDRESS, D_NAME, str(CLIENT_ID), ROUND)
 
 
-def train_multi_label(model, train_loader, criterion, optimizer, classes_names, epochs):
+def train_multi_label(model, train_loader, criterion, optimizer, classes_names, epochs, convert_label_fun):
     gpu_stats_dfs = []
     if HPC_LOG:
         make_round_gpu_metrics_dir(SERVER_ADDRESS, D_NAME, CLIENT_ID, ROUND)
@@ -115,6 +116,8 @@ def train_multi_label(model, train_loader, criterion, optimizer, classes_names, 
 
             # U-zeros approach
             batch_labels[batch_labels != 1.0] = 0.0
+            batch_labels = convert_label_fun(batch_labels)
+
             loss = criterion(logits, batch_labels)
 
             loss.backward()
@@ -198,7 +201,7 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
     train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=12, order=OrderOption.SEQUENTIAL,
                           pipelines=pipelines, indices=ids, drop_last=False)
 
-    return train_loader, get_class_names(d_name)
+    return train_loader, get_class_names(d_name, REDUCED_CLASSES)
 
 
 class ClassificationClient(fl.client.NumPyClient):
@@ -232,7 +235,7 @@ class ClassificationClient(fl.client.NumPyClient):
         model_name = config["model_name"]
 
         if self.model is None:
-            self.model = get_model(model_name, classes=get_dataset_classes_count(self.dataset_name))
+            self.model = get_model(model_name, classes=get_dataset_classes_count(self.dataset_name, REDUCED_CLASSES))
 
         self.set_parameters(parameters)
 
@@ -245,7 +248,9 @@ class ClassificationClient(fl.client.NumPyClient):
 
         if get_type_of_dataset(self.dataset_name) == 'multi-class':
             criterion = nn.BCEWithLogitsLoss()
-            train_multi_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
+            convert_label_fun = get_convert_label_fun(self.dataset_name)
+            train_multi_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs,
+                              convert_label_fun=convert_label_fun)
         else:
             criterion = nn.CrossEntropyLoss()
             train_single_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs)
@@ -262,14 +267,15 @@ class ClassificationClient(fl.client.NumPyClient):
 @click.option('--c_id', default=0, type=int, help='Client id')
 @click.option('--c', default=1, type=int, help='Clients number')
 @click.option('--d', default='nih', type=str, help='Dataset on client')
-def run_client(sa, c_id, c, d):
-    global CLIENT_ID
-    global SERVER_ADDRESS
+@click.option('--reduced_classes', is_flag=True, help='Use subset of 7 common classes')
+def run_client(sa, c_id, c, d, reduced_classes):
+    global CLIENT_ID, SERVER_ADDRESS, REDUCED_CLASSES
     # Start client
     LOGGER.info(f"Cpu count: {os.cpu_count()}")
     LOGGER.info("Connecting to:" + f"{sa}:8087")
     CLIENT_ID = c_id
     SERVER_ADDRESS = sa
+    REDUCED_CLASSES = reduced_classes
     fl.client.start_numpy_client(f"{sa}:8087",
                                  client=ClassificationClient(c_id, c, d))
 

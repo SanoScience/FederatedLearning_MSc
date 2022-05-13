@@ -23,7 +23,7 @@ import glob
 
 from data_selector import IIDSelector
 from utils import get_state_dict, test_single_label, get_beton_data_paths, get_model, get_class_names, \
-    get_type_of_dataset, get_dataset_classes_count, test_multi_label, get_data_paths
+    get_type_of_dataset, get_dataset_classes_count, test_multi_label, get_data_paths, get_convert_label_fun
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -56,6 +56,7 @@ DATA_SELECTION = 'iid'
 TEST_DATASETS = ['nih']
 STUDY_PREFIX = 'nih'
 RESULTS_BUCKET = 'fl-msc-classification'
+REDUCED_CLASSES = False
 
 IMAGE_SIZE = 224
 LIMIT = -1
@@ -173,7 +174,7 @@ class StrategyFactory:
         self.bs = bs
         self.lr = lr
         self.test_datasets = test_datasets
-        self.model = get_model(m, classes=get_dataset_classes_count(self.test_datasets[0]))
+        self.model = get_model(m, classes=get_dataset_classes_count(self.test_datasets[0], REDUCED_CLASSES))
 
     def get_eval_fn(self, model):
         image_pipeline = [RandomResizedCropRGBImageDecoder((224, 224), scale=(1.0, 1.0), ratio=(1.0, 1.0)), ToTensor(),
@@ -206,7 +207,6 @@ class StrategyFactory:
                 selector = IIDSelector()
                 # Downsample dataset by factor of 10
                 ids = selector.get_ids(dataset_len, 0, 10)
-
                 test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
                                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines, indices=ids,
                                                       drop_last=False)
@@ -216,21 +216,25 @@ class StrategyFactory:
                                                       drop_last=False)
 
         # Assumes all datasets have the same classes
-        classes_names = get_class_names(self.test_datasets[0])
+        classes_names = get_class_names(self.test_datasets[0], REDUCED_CLASSES)
 
         def evaluate(weights):
             global ROUND, LEARNING_RATE, PATIENCE, CURRENT_PATIENCE, RESULTS_BUCKET
+            convert_label_fun = lambda x: x
             state_dict = get_state_dict(model, weights)
             model.load_state_dict(state_dict, strict=True)
 
             for t_dataset in TEST_DATASETS:
                 if get_type_of_dataset(t_dataset) == 'multi-class':
+                    if REDUCED_CLASSES:
+                        convert_label_fun = get_convert_label_fun(t_dataset)
                     test_avg_auc, test_loss, report_json, auc_json = test_multi_label(model, LOGGER,
                                                                                       test_loaders_dict[t_dataset],
                                                                                       criterion,
                                                                                       classes_names, SERVER_ADDR,
                                                                                       t_dataset,
-                                                                                      'server', ROUND, HPC_LOG)
+                                                                                      'server', ROUND, HPC_LOG,
+                                                                                      convert_label_fun)
                     avg_auc_dict[t_dataset].append(test_avg_auc)
                     aucs_dict[t_dataset].append(auc_json)
                 else:
@@ -354,10 +358,12 @@ class StrategyFactory:
               help='List of datasets used for evaluation of global model, comma separated')
 @click.option('--results_bucket', default='fl-msc-classification', type=str, help='GCP bucket for storing results')
 @click.option('--study_prefix', default='nih', type=str, help='General name of the experiment')
+@click.option('--reduced_classes', is_flag=True, help='Use subset of 7 common classes')
 def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_selection, test_datasets, results_bucket,
-               study_prefix):
+               study_prefix, reduced_classes):
     global LOCAL_EPOCHS, CLIENTS, MAX_ROUNDS, MIN_FIT_CLIENTS, FRACTION_FIT, BATCH_SIZE, LEARNING_RATE, MODEL_NAME, \
-        DATASETS_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION, TEST_DATASETS, RESULTS_BUCKET, STUDY_PREFIX
+        DATASETS_TYPE, HPC_LOG, SERVER_ADDR, DOWNSAMPLE_TEST, DATA_SELECTION, TEST_DATASETS, RESULTS_BUCKET, \
+        STUDY_PREFIX, REDUCED_CLASSES
 
     LOCAL_EPOCHS = le
     CLIENTS = c
@@ -375,6 +381,7 @@ def run_server(le, c, r, mf, ff, bs, lr, m, d, hpc_log, downsample_test, data_se
     TEST_DATASETS = sorted(test_datasets.split(','))
     RESULTS_BUCKET = results_bucket
     STUDY_PREFIX = study_prefix
+    REDUCED_CLASSES = reduced_classes
 
     factory = StrategyFactory(le, c, mf, ff, bs, lr, m, TEST_DATASETS)
     strategy = factory.get_strategy()

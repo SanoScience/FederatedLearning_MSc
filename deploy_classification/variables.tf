@@ -1,5 +1,5 @@
 variable "total_node_count" {
-  default = 3
+  default = 6
 }
 
 variable "rounds" {
@@ -15,15 +15,15 @@ variable "batch_size" {
 }
 
 variable "model" {
-  default = "ResNet50"
+  default = "DenseNet121"
 }
 
 variable "training_datasets" {
-  default = "mimic"
+  default = "nih"
 }
 
 variable "test_datasets" {
-  default = "mimic,chexpert"
+  default = "mimic,chexpert,nih,chestdx,chestdx-pe"
 }
 
 variable "learning_rate" {
@@ -35,7 +35,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 3
+  default = 6
 }
 
 variable "data_selection" {
@@ -51,7 +51,7 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "mimic-chexpert"
+  default = "mimic-chexpert-nih-chestdx"
 }
 
 variable "a_100_client_zones" {
@@ -66,20 +66,29 @@ variable "a_100_client_zones" {
 
 variable "client_datasets" {
   default = [
-    "mimic",
-    "mimic",
-    "mimic"]
+    "nih",
+    "nih",
+    "nih",
+    "nih",
+    "nih",
+    "nih"]
 }
 
 variable "client_indices" {
   default = [
     0,
     1,
-    2]
+    2,
+    3,
+    4,
+    5]
 }
 
 variable "client_counts" {
   default = [
+    3,
+    3,
+    3,
     3,
     3,
     3]
