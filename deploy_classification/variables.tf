@@ -1,5 +1,13 @@
 variable "total_node_count" {
+  default = 10
+}
+
+variable "total_a100_node_count" {
   default = 6
+}
+
+variable "total_v100_node_count" {
+  default = 4
 }
 
 variable "rounds" {
@@ -19,7 +27,7 @@ variable "model" {
 }
 
 variable "training_datasets" {
-  default = "nih"
+  default = "mimic,chexpert,nih,chestdx"
 }
 
 variable "test_datasets" {
@@ -35,7 +43,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 6
+  default = 10
 }
 
 variable "data_selection" {
@@ -54,7 +62,7 @@ variable "study_prefix" {
   default = "mimic-chexpert-nih-chestdx"
 }
 
-variable "a_100_client_zones" {
+variable "a100_client_zones" {
   default = [
     "asia-northeast1-a",
     "asia-southeast1-b",
@@ -64,27 +72,51 @@ variable "a_100_client_zones" {
     "us-west1-b"]
 }
 
-variable "client_datasets" {
+variable "v100_client_zones" {
   default = [
-    "nih",
-    "nih",
-    "nih",
-    "nih",
+    "asia-east1-c",
+    "europe-west4-a",
+    "us-east1-c",
+    "us-west1-a"]
+}
+
+variable "a100_client_datasets" {
+  default = [
+    "chexpert",
+    "chexpert",
+    "chexpert",
+    "mimic",
+    "mimic",
+    "mimic"]
+}
+
+variable "v100_client_datasets" {
+  default = [
+    "chestdx",
+    "chestdx",
     "nih",
     "nih"]
 }
 
-variable "client_indices" {
+variable "a100_client_indices" {
   default = [
     0,
     1,
     2,
-    3,
-    4,
-    5]
+    0,
+    1,
+    2]
 }
 
-variable "client_counts" {
+variable "v100_client_indices" {
+  default = [
+    0,
+    1,
+    0,
+    1]
+}
+
+variable "a100_client_counts" {
   default = [
     3,
     3,
@@ -92,4 +124,12 @@ variable "client_counts" {
     3,
     3,
     3]
+}
+
+variable "v100_client_counts" {
+  default = [
+    2,
+    2,
+    2,
+    2]
 }
