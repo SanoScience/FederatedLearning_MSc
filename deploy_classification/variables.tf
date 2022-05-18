@@ -1,25 +1,25 @@
 variable "total_node_count" {
-  default = 10
-}
-
-variable "total_a100_node_count" {
-  default = 6
-}
-
-variable "total_v100_node_count" {
   default = 4
 }
 
+variable "total_a100_node_count" {
+  default = 4
+}
+
+variable "total_v100_node_count" {
+  default = 0
+}
+
 variable "rounds" {
-  default = 20
+  default = 100
 }
 
 variable "local_epochs" {
-  default = 2
+  default = 1
 }
 
 variable "batch_size" {
-  default = 64
+  default = 128
 }
 
 variable "model" {
@@ -27,11 +27,11 @@ variable "model" {
 }
 
 variable "training_datasets" {
-  default = "mimic,chexpert,nih,chestdx"
+  default = "cc-cxri-p"
 }
 
 variable "test_datasets" {
-  default = "mimic,chexpert,nih,chestdx,chestdx-pe"
+  default = "cc-cxri-p"
 }
 
 variable "learning_rate" {
@@ -43,11 +43,11 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 10
+  default = 4
 }
 
 variable "data_selection" {
-  default = "iid"
+  default = "noniid"
 }
 
 variable "token" {
@@ -59,7 +59,7 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "mimic-chexpert-nih-chestdx"
+  default = "cc-cxri-p-noniid"
 }
 
 variable "a100_client_zones" {
@@ -82,12 +82,10 @@ variable "v100_client_zones" {
 
 variable "a100_client_datasets" {
   default = [
-    "chexpert",
-    "chexpert",
-    "chexpert",
-    "mimic",
-    "mimic",
-    "mimic"]
+    "cc-cxri-p",
+    "cc-cxri-p",
+    "cc-cxri-p",
+    "cc-cxri-p"]
 }
 
 variable "v100_client_datasets" {

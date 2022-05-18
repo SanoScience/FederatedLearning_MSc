@@ -84,8 +84,8 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
                     gpu_stats_dfs.append(log_gpu_utilization_csv(D_NAME, CLIENT_ID, ROUND, epoch, batch_idx))
         preds = preds.cpu().numpy().astype(np.int32)
         labels = labels.cpu().numpy().astype(np.int32)
-        LOGGER.info("Training report:")
-        LOGGER.info(classification_report(labels, preds, target_names=classes_names))
+        # LOGGER.info("Training report:")
+        # LOGGER.info(classification_report(labels, preds, target_names=classes_names))
 
         train_loss = running_loss / len(train_loader)
         train_acc = accuracy_score(labels, preds)
