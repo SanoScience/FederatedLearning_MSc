@@ -19,7 +19,7 @@ variable "local_epochs" {
 }
 
 variable "batch_size" {
-  default = 128
+  default = 64
 }
 
 variable "model" {
