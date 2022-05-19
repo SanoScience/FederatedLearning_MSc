@@ -60,7 +60,7 @@ resource "google_compute_instance" "server" {
 
   boot_disk {
     initialize_params {
-      image = "projects/sano-332607/global/images/fl-classification-v1-2-inverse-avg"
+      image = "projects/sano-332607/global/images/fl-classification-v1"
     }
   }
 
@@ -113,7 +113,7 @@ resource google_compute_instance "client-a100" {
     "flwr-classification-client"]
   boot_disk {
     initialize_params {
-      image = "projects/sano-332607/global/images/fl-classification-v1-2-inverse-avg"
+      image = "projects/sano-332607/global/images/fl-classification-v1"
     }
   }
 
@@ -156,7 +156,7 @@ resource google_compute_instance "client-v100" {
     "flwr-classification-client"]
   boot_disk {
     initialize_params {
-      image = "projects/sano-332607/global/images/fl-classification-v1-2-inverse-avg"
+      image = "projects/sano-332607/global/images/fl-classification-v1"
     }
   }
 
