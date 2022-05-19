@@ -81,7 +81,8 @@ def fit_config(rnd: int):
         "round_no": ROUND,
         "hpc_log": HPC_LOG,
         "data_selection": DATA_SELECTION,
-        "model_name": MODEL_NAME
+        "model_name": MODEL_NAME,
+        "reduced_classes": REDUCED_CLASSES
     }
     return config
 

@@ -233,6 +233,7 @@ class ClassificationClient(fl.client.NumPyClient):
         HPC_LOG = config["hpc_log"]
         data_selection = config["data_selection"]
         model_name = config["model_name"]
+        reduced_classes = config["reduced_classes"]
 
         if self.model is None:
             self.model = get_model(model_name, classes=get_dataset_classes_count(self.dataset_name, REDUCED_CLASSES))
@@ -249,7 +250,9 @@ class ClassificationClient(fl.client.NumPyClient):
 
         if get_type_of_dataset(self.dataset_name) == 'multi-class':
             criterion = nn.BCEWithLogitsLoss()
-            convert_label_fun = get_convert_label_fun(self.dataset_name)
+            convert_label_fun = lambda x: x
+            if reduced_classes:
+                convert_label_fun = get_convert_label_fun(self.dataset_name)
             train_multi_label(self.model, self.train_loader, criterion, optimizer, self.classes_names, epochs=epochs,
                               convert_label_fun=convert_label_fun)
         else:
