@@ -207,7 +207,7 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
     train_dataset = CCCXRIPDataset(client_id, clients_number, '/home/filip_slazyk/fl-datasets/CC-CXRI-P/train.csv',
                                   "/home/filip_slazyk/fl-datasets/CC-CXRI-P/cc-cxri-p-resized-224",
                                   trans)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, num_workers=8)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, num_workers=4)
 
     # train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
     #                       pipelines=pipelines, indices=ids, drop_last=False)

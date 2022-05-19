@@ -59,7 +59,7 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "cc-cxri-p-jpgs"
+  default = "cc-cxri-p-jpgs-2"
 }
 
 variable "a100_client_zones" {

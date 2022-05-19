@@ -218,7 +218,7 @@ class StrategyFactory:
                 test_dataset = CCCXRIPDataset(-1, 3, '/home/filip_slazyk/fl-datasets/CC-CXRI-P/test.csv',
                                               "/home/filip_slazyk/fl-datasets/CC-CXRI-P/cc-cxri-p-resized-224",
                                               trans)
-                test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, num_workers=8)
+                test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, num_workers=4)
 
                 # test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
                 #                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines,
