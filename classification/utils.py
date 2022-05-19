@@ -62,14 +62,15 @@ def get_state_dict(model, parameters):
 
 def get_train_transform_rsna(img_size):
     return torchvision.transforms.Compose([
-        torchvision.transforms.Resize(size=(img_size, img_size)),
+        # torchvision.transforms.Resize(size=(img_size, img_size)),
+        torchvision.transforms.RandomResizedCrop((224, 224), scale=(0.5, 1.0), ratio=(0.75, 4 / 3)),
         torchvision.transforms.RandomHorizontalFlip(),
-        torchvision.transforms.RandomAffine(
-            degrees=[-5, 5],
-            translate=[0.05, 0.05],
-            scale=[0.95, 1.05],
-            shear=[-5, 5],
-        ),
+        # torchvision.transforms.RandomAffine(
+        #     degrees=[-5, 5],
+        #     translate=[0.05, 0.05],
+        #     scale=[0.95, 1.05],
+        #     shear=[-5, 5],
+        # ),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
@@ -78,7 +79,7 @@ def get_train_transform_rsna(img_size):
 
 def get_test_transform_rsna(img_size):
     return torchvision.transforms.Compose([
-        torchvision.transforms.Resize(size=(img_size, img_size)),
+        torchvision.transforms.Resize(size=224),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])

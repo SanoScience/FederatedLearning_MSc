@@ -22,8 +22,10 @@ import torchvision
 import glob
 
 from data_selector import IIDSelector
+from fl_cc_cxri_p_dataset import CCCXRIPDataset
 from utils import get_state_dict, test_single_label, get_beton_data_paths, get_model, get_class_names, \
-    get_type_of_dataset, get_dataset_classes_count, test_multi_label, get_data_paths, get_convert_label_fun
+    get_type_of_dataset, get_dataset_classes_count, test_multi_label, get_data_paths, get_convert_label_fun, \
+    get_test_transform_rsna
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -212,9 +214,16 @@ class StrategyFactory:
                                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines, indices=ids,
                                                       drop_last=False)
             else:
-                test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
-                                                      order=OrderOption.SEQUENTIAL, pipelines=pipelines,
-                                                      drop_last=False)
+                trans = get_test_transform_rsna(224)
+                test_dataset = CCCXRIPDataset(-1, 3, '/home/filip_slazyk/fl-datasets/CC-CXRI-P/test.csv',
+                                              "/home/filip_slazyk/fl-datasets/CC-CXRI-P/cc-cxri-p-resized-224",
+                                              trans)
+                test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, num_workers=8)
+
+                # test_loaders_dict[t_dataset] = Loader(test_subset, batch_size=BATCH_SIZE, num_workers=8,
+                #                                       order=OrderOption.SEQUENTIAL, pipelines=pipelines,
+                #                                       drop_last=False)
+                test_loaders_dict[t_dataset] = test_loader
 
         # Assumes all datasets have the same classes
         classes_names = get_class_names(self.test_datasets[0], REDUCED_CLASSES)

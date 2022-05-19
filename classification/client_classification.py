@@ -17,10 +17,11 @@ from ffcv.transforms.common import Squeeze
 from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder, NDArrayDecoder
 
 from data_selector import IIDSelector, IncreasingSelector, NonIIDSelector
+from fl_cc_cxri_p_dataset import CCCXRIPDataset
 
 from utils import get_state_dict, accuracy, get_model, get_data_paths, get_beton_data_paths, \
     get_type_of_dataset, get_class_names, log_gpu_utilization_csv, make_round_gpu_metrics_dir, save_round_gpu_csv, \
-    CC_CXRI_P_CLASSES, get_dataset_classes_count, get_convert_label_fun
+    CC_CXRI_P_CLASSES, get_dataset_classes_count, get_convert_label_fun, get_train_transform_rsna
 
 import torch.nn.functional as F
 import click
@@ -198,8 +199,15 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
         'label': label_pipeline
     }
     train_subset_beton, _ = get_beton_data_paths(d_name)
-    train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
-                          pipelines=pipelines, indices=ids, drop_last=False)
+
+    trans = get_train_transform_rsna(224)
+    train_dataset = CCCXRIPDataset(client_id, clients_number, '/home/filip_slazyk/fl-datasets/CC-CXRI-P/train.csv',
+                                  "/home/filip_slazyk/fl-datasets/CC-CXRI-P/cc-cxri-p-resized-224",
+                                  trans)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, num_workers=8)
+
+    # train_loader = Loader(train_subset_beton, batch_size=bs, num_workers=8, order=OrderOption.SEQUENTIAL,
+    #                       pipelines=pipelines, indices=ids, drop_last=False)
 
     return train_loader, get_class_names(d_name, REDUCED_CLASSES)
 
