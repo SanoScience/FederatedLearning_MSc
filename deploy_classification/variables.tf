@@ -1,9 +1,9 @@
 variable "total_node_count" {
-  default = 4
+  default = 3
 }
 
 variable "total_a100_node_count" {
-  default = 4
+  default = 3
 }
 
 variable "total_v100_node_count" {
@@ -27,11 +27,11 @@ variable "model" {
 }
 
 variable "training_datasets" {
-  default = "nih"
+  default = "cc-cxri-p"
 }
 
 variable "test_datasets" {
-  default = "nih"
+  default = "cc-cxri-p"
 }
 
 variable "learning_rate" {
@@ -43,7 +43,7 @@ variable "fraction_fit" {
 }
 
 variable "min_fit_clients" {
-  default = 4
+  default = 3
 }
 
 variable "data_selection" {
@@ -59,7 +59,7 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "nih-sgd"
+  default = "cc-cxri-p-booster"
 }
 
 variable "a100_client_zones" {
@@ -83,10 +83,9 @@ variable "v100_client_zones" {
 
 variable "a100_client_datasets" {
   default = [
-    "nih",
-    "nih",
-    "nih",
-    "nih"]
+    "cc-cxri-p",
+    "cc-cxri-p",
+    "cc-cxri-p"]
 }
 
 variable "v100_client_datasets" {
@@ -101,8 +100,7 @@ variable "a100_client_indices" {
   default = [
     0,
     1,
-    2,
-    3]
+    2]
 }
 
 variable "v100_client_indices" {
@@ -115,10 +113,9 @@ variable "v100_client_indices" {
 
 variable "a100_client_counts" {
   default = [
-    4,
-    4,
-    4,
-    4]
+    3,
+    3,
+    3]
 }
 
 variable "v100_client_counts" {

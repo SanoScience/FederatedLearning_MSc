@@ -181,8 +181,8 @@ def load_data(client_id, clients_number, d_name, bs, data_selection='iid'):
 
     image_pipeline = [decoder,
                       RandomHorizontalFlip(flip_prob=0.5),
-                      RandomTranslate(padding=10),
-                      Cutout(32, tuple(map(int, IMAGENET_MEAN))),
+                      # RandomTranslate(padding=10),
+                      # Cutout(32, tuple(map(int, IMAGENET_MEAN))),
                       ToTensor(), ToDevice(device), ToTorchImage(),
                       Convert(target_dtype=torch.float32),
                       torchvision.transforms.Normalize(mean=IMAGENET_MEAN,
@@ -242,8 +242,8 @@ class ClassificationClient(fl.client.NumPyClient):
 
         LOGGER.info(f"Learning rate: {lr}")
 
-        # optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
-        optimizer = optim.SGD(self.model.parameters(), lr=lr, weight_decay=0.00001)
+        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
+        # optimizer = optim.SGD(self.model.parameters(), lr=lr, weight_decay=0)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, self.dataset_name,
                                                           batch_size,
                                                           data_selection=data_selection)
