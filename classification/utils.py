@@ -95,9 +95,9 @@ def get_model(m, classes=3):
     if m == 'DenseNet121':
         model = torchvision.models.densenet121(pretrained=True)
         num_ftrs = model.classifier.in_features
-        # Load best model
-        model.classifier = torch.nn.Linear(in_features=num_ftrs, out_features=7)
-        model.load_state_dict(torch.load('./saved_models/densenet121_best_7_classes', map_location=torch.device('cpu')))
+        # # Load best model
+        # model.classifier = torch.nn.Linear(in_features=num_ftrs, out_features=7)
+        # model.load_state_dict(torch.load('./saved_models/densenet121_best_7_classes', map_location=torch.device('cpu')))
 
         model.classifier = torch.nn.Linear(in_features=num_ftrs, out_features=classes)
         model = model.to(DEVICE)
