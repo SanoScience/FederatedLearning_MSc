@@ -59,6 +59,9 @@ def train_single_label(model, train_loader, criterion, optimizer, classes_names,
         preds = torch.IntTensor().to(device)
 
         for batch_idx, (images, batch_labels) in enumerate(train_loader):
+            images = images.to(device=device, dtype=torch.float32)
+            batch_labels = batch_labels.to(device=device, dtype=torch.float32)
+
             optimizer.zero_grad()
 
             logits = model(images)
