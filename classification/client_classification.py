@@ -241,7 +241,8 @@ class ClassificationClient(fl.client.NumPyClient):
 
         LOGGER.info(f"Learning rate: {lr}")
 
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
+        # optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=0.00001)
+        optimizer = optim.SGD(self.model.parameters(), lr=lr, weight_decay=0.00001)
         self.train_loader, self.classes_names = load_data(self.client_id, self.clients_number, self.dataset_name,
                                                           batch_size,
                                                           data_selection=data_selection)

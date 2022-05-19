@@ -11,7 +11,7 @@ variable "total_v100_node_count" {
 }
 
 variable "rounds" {
-  default = 100
+  default = 50
 }
 
 variable "local_epochs" {
@@ -27,11 +27,11 @@ variable "model" {
 }
 
 variable "training_datasets" {
-  default = "cc-cxri-p"
+  default = "nih"
 }
 
 variable "test_datasets" {
-  default = "cc-cxri-p"
+  default = "nih"
 }
 
 variable "learning_rate" {
@@ -47,7 +47,7 @@ variable "min_fit_clients" {
 }
 
 variable "data_selection" {
-  default = "noniid"
+  default = "iid"
 }
 
 variable "token" {
@@ -59,17 +59,18 @@ variable "results_bucket" {
 }
 
 variable "study_prefix" {
-  default = "cc-cxri-p-noniid"
+  default = "nih-sgd"
 }
 
 variable "a100_client_zones" {
   default = [
     "asia-northeast1-a",
-    "asia-southeast1-b",
+    "us-west1-b",
     "europe-west4-a",
     "us-central1-a",
     "us-east1-b",
-    "us-west1-b"]
+    "asia-southeast1-b"
+  ]
 }
 
 variable "v100_client_zones" {
@@ -82,10 +83,10 @@ variable "v100_client_zones" {
 
 variable "a100_client_datasets" {
   default = [
-    "cc-cxri-p",
-    "cc-cxri-p",
-    "cc-cxri-p",
-    "cc-cxri-p"]
+    "nih",
+    "nih",
+    "nih",
+    "nih"]
 }
 
 variable "v100_client_datasets" {
@@ -101,9 +102,7 @@ variable "a100_client_indices" {
     0,
     1,
     2,
-    0,
-    1,
-    2]
+    3]
 }
 
 variable "v100_client_indices" {
@@ -116,12 +115,10 @@ variable "v100_client_indices" {
 
 variable "a100_client_counts" {
   default = [
-    3,
-    3,
-    3,
-    3,
-    3,
-    3]
+    4,
+    4,
+    4,
+    4]
 }
 
 variable "v100_client_counts" {
