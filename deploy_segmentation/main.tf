@@ -20,14 +20,14 @@ resource "google_storage_bucket_iam_binding" "binding" {
 module "flower-vpc" {
   source = "terraform-google-modules/network/google"
   project_id = "sano-332607"
-  network_name = "flower-server-vpc"
+  network_name = "flower-segmentation-vpc"
   routing_mode = "GLOBAL"
   auto_create_subnetworks = true
 
   subnets = [
     {
       subnet_name = "flower-subnet"
-      subnet_ip = "10.10.10.0/24"
+      subnet_ip = "10.11.10.0/24"
       subnet_region = "us-central1"
     }]
 
@@ -51,6 +51,7 @@ resource google_compute_firewall "firewall-server" {
   allow {
     protocol = "tcp"
     ports = [
+      "22",
       "80",
       "443",
       "5000-5999",

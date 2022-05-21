@@ -60,11 +60,12 @@ def train(net, train_loader, epochs, lr, dice_only, optimizer_name):
             running_jaccard += jac.item()
             running_loss += loss.item()
 
-            if i % 100 == 0:
+            if i % 10 == 0:
                 logger.info('batch {:>3}/{:>3} loss: {:.4f}, Jaccard {:.4f}, learning time:  {:.2f}s\r' \
                             .format(batch_idx + 1, len(train_loader),
                                     loss.item(), jac.item(),
                                     time.time() - start_time_epoch))
+
             i += 1
 
 
