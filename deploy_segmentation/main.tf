@@ -74,7 +74,7 @@ resource "google_compute_instance" "server" {
 
   boot_disk {
     initialize_params {
-      image = "projects/sano-332607/global/images/fl-msc-image-v1"
+      image = "projects/sano-332607/global/images/seg-img-v3"
     }
   }
 
@@ -124,7 +124,7 @@ resource google_compute_instance "client" {
     "flwr-client"]
   boot_disk {
     initialize_params {
-      image = "projects/sano-332607/global/images/fl-msc-image-v1"
+      image = "projects/sano-332607/global/images/seg-img-v3"
     }
   }
 

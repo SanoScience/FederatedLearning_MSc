@@ -17,17 +17,14 @@ sudo /opt/deeplearning/install-driver.sh
 #sudo systemctl --no-reload --now enable /lib/systemd/system/google_gpu_monitoring_agent_venv.service
 
 # prepare FL
-cd /home/prz_jab98
-gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
-unzip chest_dataset.zip
 
-git clone -b cloud https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
-sudo chmod -R 777 FederatedLearning_MSc
+#gsutil cp gs://fl-msc-segmentation-dataset/chest_dataset.zip .
+#unzip chest_dataset.zip
+
+#git clone -b cloud https://${token}@github.com/SanoScience/FederatedLearning_MSc.git
+#sudo chmod -R 777 FederatedLearning_MSc
 cd FederatedLearning_MSc/segmentation
-
-
+sudo nvidia-smi -pm 1
 echo 'Running FL'
 echo "export PYTHONPATH=$(dirname $PWD) && python3 client_segmentation.py ${address} ${index} ${node_count}" > run.sh
-export PYTHONPATH=$(dirname $PWD)
-#python3 client_segmentation.py ${address} ${index} ${node_count}
 touch post.txt
