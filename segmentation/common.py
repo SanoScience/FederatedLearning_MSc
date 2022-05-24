@@ -54,7 +54,7 @@ def validate(net, val_loader, device):
 
 
 def get_model():
-    return UnetPlusPlus('efficientnet-b7',
+    return UnetPlusPlus('efficientnet-b0',
                         in_channels=1,
                         classes=1,
                         activation='sigmoid')

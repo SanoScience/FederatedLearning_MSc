@@ -188,7 +188,7 @@ else:
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # EFFNET
-model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=args.classes, in_channels=args.in_channels)
+model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=args.classes, in_channels=args.in_channels)
 
 # RESNET
 # model = models.resnet34(pretrained=False)
